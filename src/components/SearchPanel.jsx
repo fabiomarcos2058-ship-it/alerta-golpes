@@ -8,7 +8,7 @@ const EXAMPLES = [
   { label: 'DDD 11', value: '11', tone: 'text-cyan-200' },
 ]
 
-export default function SearchPanel({ value, onChange, onSearch, loading }) {
+export default function SearchPanel({ value, onChange, onSearch, loading, showExamples = true }) {
   const setValue = onChange
 
   const submit = (query) => {
@@ -48,6 +48,7 @@ export default function SearchPanel({ value, onChange, onSearch, loading }) {
         </button>
       </form>
 
+      {showExamples ? (
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <span>Experimente:</span>
         {EXAMPLES.map((ex) => (
@@ -64,6 +65,9 @@ export default function SearchPanel({ value, onChange, onSearch, loading }) {
           </button>
         ))}
       </div>
+      ) : (
+        <p className="mt-3 text-xs text-slate-500">Funciona com celular, fixo, números 0303 ou só o DDD para ver a sua região.</p>
+      )}
     </div>
   )
 }

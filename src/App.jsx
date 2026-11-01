@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { TriangleAlert, ShieldCheck } from 'lucide-react'
 import Header from './components/Header'
 import SearchPanel from './components/SearchPanel'
@@ -9,11 +9,11 @@ import ReportModal from './components/ReportModal'
 import StatsStrip from './components/StatsStrip'
 import Toast from './components/Toast'
 import { useReports } from './hooks/useReports'
-import { globalStats } from './services/stats'
 import { formatAsTyped, formatPhone } from './utils/phone'
 
 export default function App() {
-  const { allReports, recent, search, addReport } = useReports()
+  const { mode, recent, stats, feedError, search, addReport } = useReports()
+  const isDemo = mode === 'demo'
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -21,8 +21,6 @@ export default function App() {
   const [modal, setModal] = useState({ open: false, phone: '' })
   const [toast, setToast] = useState('')
   const resultRef = useRef(null)
-
-  const stats = useMemo(() => globalStats(allReports), [allReports])
 
   const runSearch = useCallback(
     async (term) => {
@@ -73,7 +71,7 @@ export default function App() {
           </div>
 
           <div className="mx-auto mt-8 max-w-2xl">
-            <SearchPanel value={query} onChange={setQuery} onSearch={runSearch} loading={loading} />
+            <SearchPanel value={query} onChange={setQuery} onSearch={runSearch} loading={loading} showExamples={isDemo} />
           </div>
 
           <div ref={resultRef} className="mx-auto mt-8 max-w-4xl scroll-mt-24">
@@ -88,19 +86,19 @@ export default function App() {
           </div>
 
           <div className="mx-auto mt-8 max-w-2xl">
-            <StatsStrip stats={stats} />
+            <StatsStrip stats={stats} isDemo={isDemo} />
           </div>
         </section>
 
         {/* Feed + dicas */}
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          <RecentFeed reports={recent} />
+          <RecentFeed reports={recent} error={feedError} onReport={openReport} />
           <SafetyTips />
         </div>
       </main>
 
       <footer className="border-t border-white/5 py-8 text-center text-xs text-slate-500">
-        <p>AlertaGolpe · versão de demonstração com dados fictícios.</p>
+        <p>{isDemo ? 'AlertaGolpe · versão de demonstração com dados fictícios.' : 'AlertaGolpe · denúncias enviadas pela comunidade.'}</p>
         <p className="mt-1">As denúncias são relatos de usuários e não constituem acusação formal.</p>
       </footer>
 

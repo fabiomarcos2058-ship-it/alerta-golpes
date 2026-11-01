@@ -5,8 +5,8 @@
 Aplicação web para **consultar e denunciar números de telefone suspeitos**, feita com
 React + Vite, Tailwind CSS v4 e ícones Lucide React. Modo escuro nativo e layout responsivo.
 
-> ⚠️ Versão de demonstração: o "banco de dados" é simulado no navegador e todos os números
-> da base são fictícios. Veja abaixo como ligar num backend real.
+> Sem o Supabase configurado, o site roda em **modo demonstração** com números fictícios.
+> Veja "Modo online" abaixo.
 
 ## Como rodar
 
@@ -60,36 +60,60 @@ src/
 │   ├── SafetyTips.jsx
 │   ├── StatsStrip.jsx
 │   └── Toast.jsx
+├── config.js                # URL e chave do Supabase (vazio = modo demonstração)
+├── lib/supabase.js
 ├── data/
 │   ├── constants.js         # categorias, gravidades, status e regra de classificação
-│   └── seed.js              # base fictícia
+│   └── seed.js              # base fictícia do modo demonstração
 ├── hooks/
-│   ├── useReports.js        # "banco de dados" simulado (busca, denúncia, tempo real)
+│   ├── useReports.js        # busca, denúncia e feed (usa o backend escolhido)
 │   └── useNow.js
-├── services/stats.js        # cálculo das estatísticas
-└── utils/phone.js           # máscara, validação de DDD, "há X min"
+├── services/
+│   ├── backend.js           # escolhe online ou demonstração
+│   ├── supabaseBackend.js   # chamadas ao Supabase
+│   ├── demoBackend.js       # base fictícia + denúncias simuladas
+│   └── stats.js             # cálculos do modo demonstração
+└── utils/phone.js           # máscara, 0303, validação de DDD, "há X min"
+supabase/schema.sql          # tabela, regras de segurança e funções do banco
 ```
+
+## Modo online (Supabase) × modo demonstração
+
+- **Sem configuração**, o site roda em **modo demonstração**: base fictícia no navegador.
+- **Com o Supabase configurado** em `src/config.js`, as denúncias ficam salvas na nuvem e
+  aparecem para todo mundo.
+
+### Configurar o Supabase
+
+1. Crie um projeto em [supabase.com](https://supabase.com).
+2. **SQL Editor → New query**: cole o conteúdo de `supabase/schema.sql` e clique em **Run**.
+3. **Authentication → Sign In / Providers**: ative **Allow anonymous sign-ins**
+   (cada navegador vira uma "pessoa" anônima, sem cadastro).
+4. Copie a **Project URL** e a **publishable key** (ou *anon key*) e coloque em `src/config.js`.
+   Nunca use a *secret / service_role key* no site.
+
+### Segurança e anti-abuso (tudo no banco)
+
+- Ninguém lê nem grava direto na tabela; o site só usa funções (`consultar_numero`,
+  `panorama_ddd`, `denuncias_recentes`, `estatisticas_gerais`, `registrar_denuncia`).
+- O feed e o panorama por DDD recebem o número **já mascarado** do servidor.
+- Cada pessoa pode fazer até **10 denúncias por dia** e só **1 por número a cada 30 dias**.
 
 ## Regra de status
 
-Cada denúncia vale pontos pela gravidade (Leve 1, Moderado 2, Alto 4):
+Conta **pessoas diferentes**, para uma pessoa só não conseguir "queimar" um número:
 
 - sem denúncias → **Seguro**
-- 3 ou mais denúncias "Alto", ou 1 "Alto" + 12 pontos → **Perigoso**
+- 3+ pessoas marcaram "Alto", ou 5+ pessoas e ao menos 1 "Alto" → **Perigoso**
 - qualquer outro caso → **Suspeito**
 
-Ajuste em `src/data/constants.js` → `classify()`.
+A regra está em `supabase/schema.sql` (`_status_numero`) e espelhada em
+`src/data/constants.js` (`classifyCounts`).
 
-## Ligando num backend real
+Números com prefixo **0303** recebem um aviso de telemarketing. A Anatel reservou esse
+prefixo para telemarketing; o uso deixou de ser obrigatório em 2025.
 
-Tudo passa por `src/hooks/useReports.js`:
+## Próximos passos sugeridos
 
-- `search(query)` → troque por `fetch('/api/numeros/' + numero)`
-- `addReport(form)` → troque por `fetch('/api/denuncias', { method: 'POST', ... })`
-- o `setTimeout` do feed → troque por WebSocket/SSE ou polling
-
-Opções simples: Supabase ou Firebase (banco + tempo real prontos).
-
-Antes de publicar de verdade, pense em: moderação dos relatos, limite de denúncias por
-usuário (evitar que alguém "queime" o número de outra pessoa) e LGPD — os relatos são
-opiniões de usuários e o site deve deixar isso claro.
+- Moderação dos relatos (painel para esconder relatos com dados pessoais ou ofensas).
+- Captcha no envio (ex.: Cloudflare Turnstile) se aparecer spam.

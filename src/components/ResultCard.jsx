@@ -1,7 +1,7 @@
-import { Flag, Clock, MapPin, MessageSquare, TriangleAlert, Info, Hash } from 'lucide-react'
+import { Flag, Clock, MapPin, MessageSquare, TriangleAlert, Info, Hash, Megaphone } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import { CATEGORY_BY_ID, SEVERITY_BY_ID, STATUS } from '../data/constants'
-import { formatDateTime, formatPhone, maskPhone, timeAgo } from '../utils/phone'
+import { formatDateTime, formatPhone, timeAgo } from '../utils/phone'
 
 function Panel({ status, children }) {
   return (
@@ -77,8 +77,11 @@ function PhoneResult({ result, onReport }) {
               {formatPhone(result.phone)}
             </p>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
-              <MapPin className="size-3.5" />
-              DDD {result.phone.slice(0, 2)}{result.uf ? ` · ${result.uf}` : ''} — {meta.sublabel}
+              <MapPin className="size-3.5 shrink-0" />
+              {result.telemarketingPrefix
+                ? 'Prefixo 0303'
+                : `DDD ${result.phone.slice(0, 2)}${result.uf ? ` · ${result.uf}` : ''}`}{' '}
+              — {result.sublabel ?? meta.sublabel}
             </p>
           </div>
         </div>
@@ -92,7 +95,17 @@ function PhoneResult({ result, onReport }) {
         </button>
       </div>
 
-      {result.total === 0 ? (
+      {result.telemarketingPrefix && (
+        <div className="mt-6 flex gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-50/90">
+          <Megaphone className="mt-0.5 size-4 shrink-0 text-amber-300" />
+          <p>
+            Números que começam com 0303 são reservados pela Anatel para telemarketing. Desde 2025 o uso não é
+            mais obrigatório, então telemarketing também pode ligar de números comuns.
+          </p>
+        </div>
+      )}
+
+      {result.total === 0 && !result.telemarketingPrefix ? (
         <div className="mt-6 flex gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-100/90">
           <Info className="mt-0.5 size-4 shrink-0 text-emerald-400" />
           <p>
@@ -100,10 +113,15 @@ function PhoneResult({ result, onReport }) {
             golpistas trocam de número com frequência. Na dúvida, não passe dados nem códigos.
           </p>
         </div>
-      ) : (
+      ) : result.total === 0 ? null : (
         <>
           <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat icon={Hash} label="Total de denúncias" value={result.total} />
+            <Stat
+              icon={Hash}
+              label="Total de denúncias"
+              value={result.total}
+              sub={`de ${result.reporters} ${result.reporters === 1 ? 'pessoa' : 'pessoas diferentes'}`}
+            />
             <Stat icon={Clock} label="Última denúncia" value={timeAgo(result.lastAt)} sub={formatDateTime(result.lastAt)} />
             <Stat
               icon={TriangleAlert}
@@ -170,8 +188,8 @@ function DDDResult({ result }) {
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Mais denunciados</h3>
             <ul className="divide-y divide-white/5 rounded-2xl border border-white/5 bg-white/[0.02]">
               {result.topNumbers.map((n) => (
-                <li key={n.phone} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="font-mono text-sm text-slate-200">{maskPhone(n.phone)}</span>
+                <li key={n.masked} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="font-mono text-sm text-slate-200">{n.masked}</span>
                   <span className="flex items-center gap-3">
                     <span className="font-mono text-xs text-slate-500">{n.total}×</span>
                     <StatusBadge status={n.status} />

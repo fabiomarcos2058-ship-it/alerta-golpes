@@ -14,26 +14,36 @@ const DDD_UF = {
 
 export const onlyDigits = (value = '') => String(value).replace(/\D/g, '')
 
-/** Remove +55 e zeros de operadora, devolvendo só DDD + número. */
+/**
+ * Remove +55 e zeros de operadora, devolvendo só DDD + número.
+ * Números com prefixo 0303 (telemarketing) são mantidos como estão.
+ */
 export function normalizePhone(value) {
   let d = onlyDigits(value)
   if (d.length >= 12 && d.startsWith('55')) d = d.slice(2)
-  d = d.replace(/^0+/, '')
-  return d.slice(0, 11)
+  if (d.startsWith('0303')) return d.slice(0, 12)
+  if (d.length < 4 && '0303'.startsWith(d)) return d // ainda digitando "0303"
+  return d.replace(/^0+/, '').slice(0, 11)
 }
+
+export const isTelemarketingPrefix = (digits) => digits.startsWith('0303')
 
 export const isValidDDD = (ddd) => Boolean(DDD_UF[Number(ddd)])
 export const ufFromDDD = (ddd) => DDD_UF[Number(ddd)] ?? null
 
 export function isValidPhone(digits) {
+  if (isTelemarketingPrefix(digits)) return /^0303\d{6,8}$/.test(digits)
   return (digits.length === 10 || digits.length === 11) && isValidDDD(digits.slice(0, 2))
 }
 
 export const isDDDQuery = (digits) => digits.length === 2 && isValidDDD(digits)
 
-/** (11) 98765-4321 ou (11) 3456-7890 */
+const format0303 = (d) => `0303 ${d.slice(4, 7)} ${d.slice(7)}`.trim()
+
+/** (11) 98765-4321, (11) 3456-7890 ou 0303 123 4567 */
 export function formatPhone(digits) {
   const d = onlyDigits(digits)
+  if (isTelemarketingPrefix(d)) return format0303(d)
   if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
   if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
   return d
@@ -42,7 +52,8 @@ export function formatPhone(digits) {
 /** Máscara progressiva para o campo de digitação. */
 export function formatAsTyped(value) {
   const d = normalizePhone(value)
-  if (d.length <= 2) return d
+  if (isTelemarketingPrefix(d)) return format0303(d)
+  if (d.length <= 2 || (d.length < 4 && d.startsWith('0'))) return d
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
@@ -52,6 +63,9 @@ export function formatAsTyped(value) {
 export function maskPhone(digits) {
   return formatPhone(digits).replace(/\d{2}$/, '••')
 }
+
+/** Mesmo resultado de maskPhone, a partir do número já sem os 2 últimos dígitos. */
+export const maskFromPrefix = (prefix) => maskPhone(`${prefix}00`)
 
 export function timeAgo(timestamp, now = Date.now()) {
   const s = Math.max(0, Math.floor((now - timestamp) / 1000))

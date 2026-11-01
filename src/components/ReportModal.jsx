@@ -11,7 +11,7 @@ function validate(form) {
   const errors = {}
   const digits = normalizePhone(form.phone)
   if (!digits) errors.phone = 'Informe o número que entrou em contato.'
-  else if (!isValidPhone(digits)) errors.phone = 'Número inválido. Use DDD + número, ex.: (11) 98765-4321.'
+  else if (!isValidPhone(digits)) errors.phone = 'Número inválido. Use DDD + número, ex.: (11) 98765-4321, ou um 0303.'
   if (!form.category) errors.category = 'Escolha o tipo de contato.'
   if (!form.severity) errors.severity = 'Escolha o nível de periculosidade.'
   const len = form.description.trim().length
@@ -35,6 +35,7 @@ export default function ReportModal({ open, initialPhone = '', onClose, onSubmit
   const [submitted, setSubmitted] = useState(false)
   const [state, setState] = useState('form') // form | sending | success
   const [sentPhone, setSentPhone] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const firstField = useRef(null)
 
   // Reinicia o formulário sempre que o modal abre.
@@ -43,6 +44,7 @@ export default function ReportModal({ open, initialPhone = '', onClose, onSubmit
     setForm({ ...EMPTY, phone: initialPhone ? formatAsTyped(initialPhone) : '' })
     setErrors({})
     setSubmitted(false)
+    setSubmitError('')
     setState('form')
     setTimeout(() => firstField.current?.focus(), 50)
   }, [open, initialPhone])
@@ -75,9 +77,15 @@ export default function ReportModal({ open, initialPhone = '', onClose, onSubmit
     setErrors(found)
     if (Object.keys(found).length) return
     setState('sending')
-    const report = await onSubmit(form)
-    setSentPhone(report.phone)
-    setState('success')
+    setSubmitError('')
+    try {
+      const report = await onSubmit(form)
+      setSentPhone(report.phone)
+      setState('success')
+    } catch (err) {
+      setSubmitError(err.message)
+      setState('form')
+    }
   }
 
   const descLen = form.description.length
@@ -166,7 +174,7 @@ export default function ReportModal({ open, initialPhone = '', onClose, onSubmit
                     id="r-phone"
                     type="tel"
                     inputMode="tel"
-                    placeholder="(11) 98765-4321"
+                    placeholder="(11) 98765-4321 ou 0303…"
                     value={form.phone}
                     onChange={(e) => update('phone', formatAsTyped(e.target.value))}
                     aria-invalid={Boolean(errors.phone)}
@@ -252,6 +260,12 @@ export default function ReportModal({ open, initialPhone = '', onClose, onSubmit
               </div>
             </div>
 
+            {submitError && (
+              <p role="alert" className="flex items-start gap-2 border-t border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-200 sm:px-6">
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                {submitError}
+              </p>
+            )}
             <footer className="flex flex-col-reverse gap-2 border-t border-white/5 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
               <button
                 type="button"
