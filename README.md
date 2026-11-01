@@ -1,5 +1,7 @@
 # AlertaGolpe — Quem ligou pra você?
 
+🔗 **Site no ar:** https://fabiomarcos2058-ship-it.github.io/alerta-golpes/
+
 Aplicação web para **consultar e denunciar números de telefone suspeitos**, feita com
 React + Vite, Tailwind CSS v4 e ícones Lucide React. Modo escuro nativo e layout responsivo.
 
@@ -21,6 +23,9 @@ Build de produção (gera a pasta `dist/`, pronta para Netlify, Vercel ou GitHub
 npm run build
 npm run preview  # testa o build localmente
 ```
+
+**GitHub Pages:** já configurado em `.github/workflows/deploy.yml` — todo push na `main`
+gera e publica o site automaticamente (Settings → Pages → Source: GitHub Actions).
 
 **Netlify:** comando de build `npm run build`, pasta de publicação `dist`.
 
