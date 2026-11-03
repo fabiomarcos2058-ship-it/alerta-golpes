@@ -56,6 +56,7 @@ src/
 │   ├── ResultCard.jsx       # resultado por número e por DDD (+ skeleton)
 │   ├── StatusBadge.jsx
 │   ├── ReportModal.jsx      # formulário de denúncia com validação
+│   ├── FeedbackModal.jsx    # formulário de feedback (estrelas, tipo, mensagem)
 │   ├── RecentFeed.jsx       # feed "ao vivo"
 │   ├── SafetyTips.jsx
 │   ├── StatsStrip.jsx
@@ -98,6 +99,17 @@ supabase/schema.sql          # tabela, regras de segurança e funções do banco
   `panorama_ddd`, `denuncias_recentes`, `estatisticas_gerais`, `registrar_denuncia`).
 - O feed e o panorama por DDD recebem o número **já mascarado** do servidor.
 - Cada pessoa pode fazer até **10 denúncias por dia** e só **1 por número a cada 30 dias**.
+- Feedbacks: até **5 por pessoa por dia**, e ninguém além de você consegue lê-los.
+
+## Feedbacks
+
+Botão **Feedback** no cabeçalho (computador), seção "O que você achou do site?" no fim da
+página e link no rodapé. O visitante dá uma nota de 1 a 5 estrelas, escolhe o tipo
+(sugestão, problema, elogio, outro), escreve a mensagem e, se quiser, deixa um contato.
+
+- **Online:** salvo na tabela `feedbacks`. Só o dono do projeto vê, em
+  **Supabase → Table Editor → feedbacks**. Limite de 5 feedbacks por pessoa por dia.
+- **Demonstração:** fica salvo só no navegador de quem enviou.
 
 ## Regra de status
 

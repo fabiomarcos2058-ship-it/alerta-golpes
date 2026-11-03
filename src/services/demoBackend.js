@@ -81,6 +81,19 @@ export const demoBackend = {
     return { phone, createdAt: report.createdAt }
   },
 
+  /** No modo demonstração o feedback fica só neste navegador. */
+  async enviarFeedback(feedback) {
+    await wait()
+    try {
+      const key = 'alerta-golpe:feedbacks:v1'
+      const list = JSON.parse(localStorage.getItem(key) || '[]')
+      localStorage.setItem(key, JSON.stringify([{ ...feedback, createdAt: Date.now() }, ...list]))
+    } catch {
+      /* navegação privada: ignora */
+    }
+    return { id: `demo-${Date.now()}` }
+  },
+
   /** Avisa quando chegam denúncias novas. Devolve a função de cancelar. */
   subscribe(callback) {
     listeners.add(callback)

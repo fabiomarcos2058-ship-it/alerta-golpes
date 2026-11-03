@@ -60,5 +60,16 @@ export function useReports() {
     [refresh]
   )
 
-  return { mode: backend.mode, recent, stats, feedError, search, addReport }
+  const sendFeedback = useCallback(
+    (form) =>
+      backend.enviarFeedback({
+        rating: form.rating,
+        kind: form.kind,
+        message: form.message.trim(),
+        contact: form.contact.trim(),
+      }),
+    []
+  )
+
+  return { mode: backend.mode, recent, stats, feedError, search, addReport, sendFeedback }
 }

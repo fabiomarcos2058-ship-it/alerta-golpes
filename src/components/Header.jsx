@@ -1,4 +1,4 @@
-import { ShieldCheck, Flag } from 'lucide-react'
+import { ShieldCheck, Flag, MessageSquareHeart } from 'lucide-react'
 
 const NAV = [
   { href: '#consulta', label: 'Consultar' },
@@ -6,7 +6,7 @@ const NAV = [
   { href: '#dicas', label: 'Dicas' },
 ]
 
-export default function Header({ onReport }) {
+export default function Header({ onReport, onFeedback }) {
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -29,6 +29,14 @@ export default function Header({ onReport }) {
               {item.label}
             </a>
           ))}
+          <button
+            type="button"
+            onClick={onFeedback}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
+          >
+            <MessageSquareHeart className="size-4" />
+            Feedback
+          </button>
         </nav>
 
         <button

@@ -202,3 +202,61 @@ grant execute on function public.consultar_numero(text)  to anon, authenticated;
 grant execute on function public.panorama_ddd(text)      to anon, authenticated;
 grant execute on function public.denuncias_recentes(int) to anon, authenticated;
 grant execute on function public.estatisticas_gerais()   to anon, authenticated;
+
+-- =====================================================================
+--  FEEDBACKS dos visitantes sobre o site
+--  Só você vê: Supabase → Table Editor → feedbacks
+-- =====================================================================
+
+create table if not exists public.feedbacks (
+  id          uuid primary key default gen_random_uuid(),
+  rating      smallint not null check (rating between 1 and 5),
+  kind        text not null check (kind in ('sugestao','problema','elogio','outro')),
+  message     text not null check (char_length(message) between 10 and 1000),
+  contact     text check (contact is null or char_length(contact) <= 120),
+  page        text check (page is null or char_length(page) <= 200),
+  user_agent  text check (user_agent is null or char_length(user_agent) <= 300),
+  reporter_id uuid not null references auth.users (id) on delete cascade,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists feedbacks_created_idx  on public.feedbacks (created_at desc);
+create index if not exists feedbacks_reporter_idx on public.feedbacks (reporter_id, created_at desc);
+
+-- Visitantes não leem nem gravam direto: só pela função abaixo.
+alter table public.feedbacks enable row level security;
+revoke all on public.feedbacks from anon, authenticated;
+
+create or replace function public.enviar_feedback(
+  p_rating int, p_kind text, p_message text, p_contact text default null,
+  p_page text default null, p_user_agent text default null
+)
+returns json
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_id  uuid;
+begin
+  if v_uid is null then
+    raise exception 'Sessão expirada. Recarregue a página e tente de novo.';
+  end if;
+
+  if (select count(*) from feedbacks
+      where reporter_id = v_uid and created_at > now() - interval '24 hours') >= 5 then
+    raise exception 'Você já enviou 5 feedbacks hoje. Obrigado! Tente de novo amanhã.';
+  end if;
+
+  insert into feedbacks (rating, kind, message, contact, page, user_agent, reporter_id)
+  values (p_rating, p_kind, btrim(p_message),
+          nullif(btrim(coalesce(p_contact, '')), ''),
+          left(p_page, 200), left(p_user_agent, 300), v_uid)
+  returning id into v_id;
+
+  return json_build_object('id', v_id);
+end
+$$;
+
+revoke execute on function public.enviar_feedback(int, text, text, text, text, text) from public, anon;
+grant  execute on function public.enviar_feedback(int, text, text, text, text, text) to authenticated;

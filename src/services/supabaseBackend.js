@@ -24,7 +24,7 @@ async function ensureSession() {
   if (data.session) return
   const { error } = await supabase.auth.signInAnonymously()
   if (error) {
-    throw new Error('O envio de denúncias ainda não está ativado. Ative o login anônimo no Supabase.')
+    throw new Error('O envio ainda não está ativado. Ative o login anônimo no Supabase.')
   }
 }
 
@@ -89,6 +89,18 @@ export const supabaseBackend = {
       p_description: description,
     })
     return { phone: d.phone, createdAt: toTime(d.created_at) }
+  },
+
+  async enviarFeedback({ rating, kind, message, contact }) {
+    await ensureSession()
+    return rpc('enviar_feedback', {
+      p_rating: rating,
+      p_kind: kind,
+      p_message: message,
+      p_contact: contact || null,
+      p_page: location.pathname + location.hash,
+      p_user_agent: navigator.userAgent.slice(0, 300),
+    })
   },
 
   /** Busca novidades periodicamente e quando a aba volta a ficar visível. */
