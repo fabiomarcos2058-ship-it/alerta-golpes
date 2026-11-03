@@ -57,6 +57,8 @@ src/
 │   ├── StatusBadge.jsx
 │   ├── ReportModal.jsx      # formulário de denúncia com validação
 │   ├── FeedbackModal.jsx    # formulário de feedback (estrelas, tipo, mensagem)
+│   ├── ScamSimulator.jsx    # seção com os cenários do simulador
+│   ├── CallSimulator.jsx    # tela da ligação simulada
 │   ├── RecentFeed.jsx       # feed "ao vivo"
 │   ├── SafetyTips.jsx
 │   ├── StatsStrip.jsx
@@ -100,6 +102,18 @@ supabase/schema.sql          # tabela, regras de segurança e funções do banco
 - O feed e o panorama por DDD recebem o número **já mascarado** do servidor.
 - Cada pessoa pode fazer até **10 denúncias por dia** e só **1 por número a cada 30 dias**.
 - Feedbacks: até **5 por pessoa por dia**, e ninguém além de você consegue lê-los.
+
+## Simulador de golpe
+
+Seção "Treine antes que aconteça": a pessoa escolhe um golpe, recebe uma ligação falsa na
+tela, lê (e ouve, se o aparelho tiver voz em português) o que o golpista diz e escolhe o que
+responder. Cada escolha mostra o sinal de golpe que estava ali, e no final aparece o
+resultado com a lista de sinais.
+
+Cenários: falsa central do banco, falso parente, falso empréstimo e código do WhatsApp.
+Os roteiros ficam em `src/data/scamScenarios.js`. Todos os nomes, empresas e números
+são fictícios. Para criar um cenário novo, copie um existente e mude as falas, as
+escolhas e os finais.
 
 ## Feedbacks
 

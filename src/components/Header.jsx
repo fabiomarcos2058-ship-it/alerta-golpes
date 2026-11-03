@@ -2,7 +2,8 @@ import { ShieldCheck, Flag, MessageSquareHeart } from 'lucide-react'
 
 const NAV = [
   { href: '#consulta', label: 'Consultar' },
-  { href: '#feed', label: 'Denúncias recentes' },
+  { href: '#simulador', label: 'Simulador' },
+  { href: '#feed', label: 'Denúncias' },
   { href: '#dicas', label: 'Dicas' },
 ]
 

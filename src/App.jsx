@@ -7,6 +7,7 @@ import RecentFeed from './components/RecentFeed'
 import SafetyTips from './components/SafetyTips'
 import ReportModal from './components/ReportModal'
 import FeedbackModal from './components/FeedbackModal'
+import ScamSimulator from './components/ScamSimulator'
 import StatsStrip from './components/StatsStrip'
 import Toast from './components/Toast'
 import { useReports } from './hooks/useReports'
@@ -93,6 +94,8 @@ export default function App() {
             <StatsStrip stats={stats} isDemo={isDemo} />
           </div>
         </section>
+
+        <ScamSimulator />
 
         {/* Feed + dicas */}
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
