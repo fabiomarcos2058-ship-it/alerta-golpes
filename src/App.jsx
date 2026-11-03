@@ -8,6 +8,10 @@ import SafetyTips from './components/SafetyTips'
 import ReportModal from './components/ReportModal'
 import FeedbackModal from './components/FeedbackModal'
 import ScamSimulator from './components/ScamSimulator'
+import SimulatorSpotlight from './components/SimulatorSpotlight'
+import IncomingCallInvite from './components/IncomingCallInvite'
+import CallSimulator from './components/CallSimulator'
+import { SCENARIOS } from './data/scamScenarios'
 import StatsStrip from './components/StatsStrip'
 import Toast from './components/Toast'
 import { useReports } from './hooks/useReports'
@@ -23,6 +27,7 @@ export default function App() {
   const [modal, setModal] = useState({ open: false, phone: '' })
   const [toast, setToast] = useState('')
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [simScenario, setSimScenario] = useState(null)
   const resultRef = useRef(null)
 
   const runSearch = useCallback(
@@ -49,6 +54,17 @@ export default function App() {
   const openFeedback = useCallback(() => setFeedbackOpen(true), [])
   const closeFeedback = useCallback(() => setFeedbackOpen(false), [])
 
+  // Simulador: sem id, começa pela falsa central do banco (o golpe mais comum).
+  const openSimulator = useCallback(
+    (id = 'falso-banco') => setSimScenario(SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[0]),
+    []
+  )
+  const closeSimulator = useCallback(() => setSimScenario(null), [])
+  const pickAnotherScam = useCallback(() => {
+    setSimScenario(null)
+    requestAnimationFrame(() => document.getElementById('simulador')?.scrollIntoView({ behavior: 'smooth' }))
+  }, [])
+
   const submitReport = async (form) => {
     const report = await addReport(form)
     setToast(`Denúncia de ${formatPhone(report.phone)} enviada. Obrigado por proteger a comunidade!`)
@@ -57,7 +73,7 @@ export default function App() {
 
   return (
     <div className="min-h-dvh">
-      <Header onReport={openReport} onFeedback={openFeedback} />
+      <Header onReport={openReport} onFeedback={openFeedback} onSimulate={openSimulator} />
 
       <main className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
         {/* Hero + busca */}
@@ -90,12 +106,16 @@ export default function App() {
             <ResultCard result={result} onReport={openReport} />
           </div>
 
+          <div className="mx-auto mt-10 max-w-4xl">
+            <SimulatorSpotlight onStart={openSimulator} />
+          </div>
+
           <div className="mx-auto mt-8 max-w-2xl">
             <StatsStrip stats={stats} isDemo={isDemo} />
           </div>
         </section>
 
-        <ScamSimulator />
+        <ScamSimulator onStart={openSimulator} />
 
         {/* Feed + dicas */}
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -152,6 +172,15 @@ export default function App() {
         isDemo={isDemo}
         onSubmit={sendFeedback}
       />
+      {simScenario && (
+        <CallSimulator
+          key={simScenario.id}
+          scenario={simScenario}
+          onClose={closeSimulator}
+          onPickAnother={pickAnotherScam}
+        />
+      )}
+      <IncomingCallInvite onAnswer={() => openSimulator()} blocked={Boolean(simScenario) || modal.open || feedbackOpen} />
       <Toast message={toast} onClose={closeToast} />
     </div>
   )
