@@ -124,6 +124,16 @@ qualquer pessoa). Navegação em abas: **Consultar**, **Simular golpe**, **Anali
     de SMS (Twilio, MessageBird, Vonage ou Textlocal). A função `minhas_denuncias` do
     `supabase/schema.sql` mostra as denúncias da pessoa em qualquer aparelho.
 
+## Planos e teste grátis (simulação)
+
+Nenhuma compra é real e nenhum dado é pedido: o plano fica marcado só no aparelho (localStorage).
+
+- **Gratuito**: consultar, denunciar, os 4 golpes principais do simulador, analisar mensagens e dicas. Limites: lista com até 5 números, sem golpes extras, sem relatório do treino e sem painel de turma/equipe.
+- **Teste grátis de 7 dias**: libera tudo dos planos pagos uma vez por aparelho e volta sozinho para o Gratuito quando acaba.
+- **Escolas e Empresas**: golpes extras no simulador (vaga de emprego falsa e falso fornecedor), relatório do treino, painel de exemplo e lista sem limite.
+- A aba **Planos** aparece no menu do celular e do computador, com selo do teste ou dos dias restantes, e há um convite ao teste na página inicial.
+- Código: `src/hooks/usePlan.js`, `src/components/UpgradePrompt.jsx`, `src/data/plans.js`.
+
 ## Logo
 
 `public/favicon.svg` é a marca (escudo + telefone tocando). As versões completas ficam

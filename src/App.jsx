@@ -13,7 +13,9 @@ import TipsView from './views/TipsView'
 import AccountView from './views/AccountView'
 import PlansView from './views/PlansView'
 import SubscribeModal from './components/SubscribeModal'
-import { PLAN_BY_ID } from './data/plans'
+import { UpgradeModal } from './components/UpgradePrompt'
+import { PLAN_BY_ID, LIST_LIMIT, TRIAL_DAYS } from './data/plans'
+import { usePlan } from './hooks/usePlan'
 import { useReports } from './hooks/useReports'
 import { useStored, KEYS } from './hooks/useStored'
 import { useView } from './hooks/useView'
@@ -47,7 +49,7 @@ function Site() {
   const [watchlist, setWatchlist] = useStored(KEYS.watchlist, [])
   const [training, setTraining] = useStored(KEYS.training, {})
   const [textSize, setTextSize] = useStored(KEYS.textSize, 'normal')
-  const [plan, setPlan] = useStored(KEYS.plan, null)
+  const [attempts, setAttempts] = useStored(KEYS.attempts, [])
   const [subscribeId, setSubscribeId] = useState(null)
 
   // Janelas
@@ -56,6 +58,18 @@ function Site() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [simScenario, setSimScenario] = useState(null)
   const [toast, setToast] = useState('')
+  const [upgrade, setUpgrade] = useState(null) // { title, text } quando bate num limite
+
+  const onTrialEnded = useCallback(() => setToast('Seu teste grátis terminou. Você voltou para o plano Gratuito.'), [])
+  const planInfo = usePlan({ onTrialEnded })
+  const { isPremium, startTrial, subscribe, cancel } = planInfo
+  const beginTrial = useCallback(
+    (planId = 'escolas') => {
+      startTrial(planId)
+      setToast(`Teste grátis do plano ${PLAN_BY_ID[planId].name} ativado por ${TRIAL_DAYS} dias.`)
+    },
+    [startTrial]
+  )
 
   useEffect(() => {
     document.documentElement.dataset.text = textSize
@@ -93,6 +107,11 @@ function Site() {
     if (saved) {
       setWatchlist((prev) => prev.filter((w) => w.phone !== result.phone))
       setToast('Número removido da sua lista.')
+    } else if (!isPremium && watchlist.length >= LIST_LIMIT) {
+      setUpgrade({
+        title: `Sua lista já tem ${LIST_LIMIT} números`,
+        text: `No plano Gratuito, a lista guarda até ${LIST_LIMIT} números. Remova um em Minha área ou libere a lista sem limite.`,
+      })
     } else {
       setWatchlist((prev) => [{ phone: result.phone, status: result.status, savedAt: Date.now() }, ...prev])
       setToast('Número salvo na sua lista. Veja em Minha área.')
@@ -124,11 +143,22 @@ function Site() {
   }
 
   const finishTraining = useCallback(
-    (id, outcome) => setTraining((prev) => (RANK[outcome] >= (RANK[prev[id]] ?? 0) ? { ...prev, [id]: outcome } : prev)),
-    [setTraining]
+    (id, outcome) => {
+      setTraining((prev) => (RANK[outcome] >= (RANK[prev[id]] ?? 0) ? { ...prev, [id]: outcome } : prev))
+      setAttempts((prev) => [...prev, { id, outcome, at: Date.now() }].slice(-200))
+    },
+    [setTraining, setAttempts]
   )
 
-  const openScenario = (id) => setSimScenario(SCENARIOS.find((s) => s.id === id))
+  const openScenario = (id) => {
+    const sc = SCENARIOS.find((s) => s.id === id)
+    if (sc.premium && !isPremium) {
+      setUpgrade({ title: 'Golpe extra do plano pago', text: 'Os golpes extras do simulador fazem parte dos planos Escolas e Empresas.' })
+      return
+    }
+    setSimScenario(sc)
+  }
+  const access = { isPremium, canTrial: planInfo.canTrial, onTrial: () => beginTrial(), onPlans: () => go('planos') }
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -136,6 +166,7 @@ function Site() {
         view={view}
         go={go}
         user={user}
+        planInfo={planInfo}
         onReport={openReport}
         onLogin={() => setLoginOpen(true)}
         bigText={textSize === 'grande'}
@@ -146,6 +177,8 @@ function Site() {
         {view === 'consultar' && (
           <HomeView
             isDemo={isDemo}
+            planInfo={planInfo}
+            onTrial={() => beginTrial()}
             go={go}
             onReport={openReport}
             search={{
@@ -162,14 +195,15 @@ function Site() {
             feed={{ recent, stats, error: feedError }}
           />
         )}
-        {view === 'simulador' && <SimulatorView training={training} onStart={openScenario} />}
+        {view === 'simulador' && <SimulatorView training={training} onStart={openScenario} access={access} />}
         {view === 'mensagem' && <MessageView />}
         {view === 'planos' && (
           <PlansView
-            current={plan}
+            planInfo={planInfo}
+            onTrial={beginTrial}
             onChoose={(id) => {
               if (id === 'gratuito') {
-                setPlan(null)
+                cancel()
                 setToast('Você voltou para o plano Gratuito.')
               } else setSubscribeId(id)
             }}
@@ -190,11 +224,13 @@ function Site() {
             onCheck={(phone) => runSearch(phone)}
             loadMyReports={loadMyReports}
             training={training}
+            attempts={attempts}
             onReport={openReport}
             onFeedback={() => setFeedbackOpen(true)}
-            plan={plan}
+            planInfo={planInfo}
+            onTrial={() => beginTrial()}
             onEndPlan={() => {
-              setPlan(null)
+              cancel()
               setToast('Simulação encerrada. Você está no plano Gratuito.')
             }}
             go={go}
@@ -218,7 +254,7 @@ function Site() {
         </div>
       </footer>
 
-      <BottomNav view={view} />
+      <BottomNav view={view} planInfo={planInfo} />
 
       <ReportModal
         open={reportModal.open}
@@ -256,11 +292,20 @@ function Site() {
           planId={subscribeId}
           onClose={() => setSubscribeId(null)}
           onActivate={(sub) => {
-            setPlan(sub)
+            subscribe(sub)
             setToast(`Plano ${PLAN_BY_ID[sub.plan].name} ativado na simulação.`)
           }}
         />
       )}
+      <UpgradeModal
+        open={Boolean(upgrade)}
+        onClose={() => setUpgrade(null)}
+        title={upgrade?.title}
+        text={planInfo.canTrial ? `${upgrade?.text ?? ''} Teste grátis por ${TRIAL_DAYS} dias, sem pagar.` : upgrade?.text}
+        canTrial={planInfo.canTrial}
+        onTrial={() => beginTrial()}
+        onPlans={() => go('planos')}
+      />
       <Toast message={toast} onClose={closeToast} />
     </div>
   )

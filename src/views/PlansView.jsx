@@ -1,5 +1,5 @@
-import { Check, Minus, CircleCheck, Info } from 'lucide-react'
-import { FEATURES, FREE_LIMITS, PLANS } from '../data/plans'
+import { Check, Minus, CircleCheck, Info, Sparkles, Clock } from 'lucide-react'
+import { FEATURES, FREE_LIMITS, PLANS, TRIAL_DAYS } from '../data/plans'
 
 function Value({ value }) {
   if (value === true)
@@ -17,7 +17,8 @@ function Value({ value }) {
   return <span className="text-ink">{value}</span>
 }
 
-export default function PlansView({ current, onChoose }) {
+export default function PlansView({ planInfo, onChoose, onTrial }) {
+  const { plan: current, planName, isTrial, daysLeft, canTrial } = planInfo
   return (
     <div className="space-y-10">
       <section>
@@ -25,6 +26,26 @@ export default function PlansView({ current, onChoose }) {
         <p className="mt-3 max-w-2xl text-lg text-ink-soft">
           Para quem quer se proteger, o Alerta Golpe é grátis e sempre vai ser. Os planos pagos são para escolas e empresas que querem treinar muitas pessoas.
         </p>
+        {isTrial && (
+          <p className="mt-4 flex max-w-2xl items-center gap-3 rounded-xl border border-brand bg-white p-4 text-ink">
+            <Clock className="size-6 shrink-0 text-brand" />
+            <span>
+              <b>Seu teste grátis do plano {planName} termina em {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}.</b> Depois você volta sozinho para o Gratuito, sem cobrança.
+            </span>
+          </p>
+        )}
+        {canTrial && (
+          <div className="mt-4 flex max-w-2xl flex-col gap-3 rounded-2xl bg-brand p-5 text-white sm:flex-row sm:items-center">
+            <Sparkles className="size-8 shrink-0" />
+            <div className="flex-1">
+              <p className="text-lg font-bold">Teste grátis por {TRIAL_DAYS} dias</p>
+              <p className="text-white/85">Use os golpes extras, o relatório de treino e o painel. Sem pagar e sem cadastro.</p>
+            </div>
+            <button type="button" onClick={() => onTrial('escolas')} className="btn shrink-0 bg-white text-brand hover:bg-brand-tint">
+              Começar teste grátis
+            </button>
+          </div>
+        )}
         <p className="mt-4 flex max-w-2xl gap-3 rounded-xl border border-brand/20 bg-brand-tint p-4 text-[15px] text-ink">
           <Info className="mt-0.5 size-5 shrink-0 text-brand" />
           <span>
@@ -43,7 +64,7 @@ export default function PlansView({ current, onChoose }) {
                 <span className="grid size-11 place-items-center rounded-xl bg-brand-tint text-brand">
                   <Icon className="size-5" />
                 </span>
-                {active && <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-semibold text-white">Seu plano</span>}
+                {active && <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-semibold text-white">{isTrial ? 'Em teste' : 'Seu plano'}</span>}
               </div>
               <h2 className="mt-4 text-xl font-bold text-ink">{p.name}</h2>
               <p className="text-ink-soft">{p.audience}</p>
@@ -62,12 +83,19 @@ export default function PlansView({ current, onChoose }) {
               </ul>
               {p.id === 'gratuito' ? (
                 <button type="button" disabled={!current} onClick={() => onChoose('gratuito')} className="btn btn-secondary mt-6">
-                  {current ? 'Voltar para o Gratuito' : 'Você já usa este plano'}
+                  {current ? (isTrial ? 'Encerrar teste e voltar' : 'Voltar para o Gratuito') : 'Você já usa este plano'}
                 </button>
               ) : (
-                <button type="button" onClick={() => onChoose(p.id)} className={`btn mt-6 ${active ? 'btn-secondary' : 'btn-primary'}`}>
-                  {active ? 'Alterar simulação' : `Assinar ${p.name} (simulação)`}
-                </button>
+                <div className="mt-6 grid gap-2">
+                  <button type="button" onClick={() => onChoose(p.id)} className={`btn ${active && !isTrial ? 'btn-secondary' : 'btn-primary'}`}>
+                    {active && !isTrial ? 'Alterar simulação' : `Assinar ${p.name} (simulação)`}
+                  </button>
+                  {canTrial && (
+                    <button type="button" onClick={() => onTrial(p.id)} className="btn btn-secondary">
+                      <Sparkles className="size-5" /> Testar grátis por {TRIAL_DAYS} dias
+                    </button>
+                  )}
+                </div>
               )}
             </li>
           )

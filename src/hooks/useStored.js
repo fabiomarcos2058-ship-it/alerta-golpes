@@ -53,4 +53,6 @@ export const KEYS = {
   training: 'alerta-golpe:treino:v1',
   textSize: 'alerta-golpe:texto:v1',
   plan: 'alerta-golpe:plano-simulado:v1',
+  trialUsed: 'alerta-golpe:teste-usado:v1',
+  attempts: 'alerta-golpe:tentativas:v1',
 }

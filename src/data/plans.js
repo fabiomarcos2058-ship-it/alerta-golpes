@@ -22,7 +22,7 @@ export const PLANS = [
     period: 'escola pública',
     priceNote: 'Escola particular: R$ 490 por ano',
     pitch: 'Transforme o simulador numa aula prática de educação digital.',
-    highlights: ['Tudo do Gratuito', 'Painel da turma com os resultados', 'Cenários extras para jovens', 'Plano de aula pronto'],
+    highlights: ['Tudo do Gratuito', 'Painel da turma com os resultados', 'Golpes extras no simulador', 'Plano de aula pronto'],
   },
   {
     id: 'empresas',
@@ -33,7 +33,7 @@ export const PLANS = [
     period: 'por pessoa por mês',
     priceNote: 'A partir de 10 pessoas',
     pitch: 'Treine a equipe inteira e reduza quem cai em golpes.',
-    highlights: ['Tudo do Gratuito', 'Painel da equipe e relatórios', 'Golpes do seu setor', 'Consulta de números por integração (API)'],
+    highlights: ['Tudo do Gratuito', 'Painel da equipe e relatórios', 'Golpes extras, como o falso fornecedor', 'Consulta de números por integração (API)'],
   },
 ]
 
@@ -43,13 +43,13 @@ export const PLAN_BY_ID = Object.fromEntries(PLANS.map((p) => [p.id, p]))
 export const FEATURES = [
   { label: 'Consultar números', values: [true, true, true] },
   { label: 'Denunciar números', values: [true, true, true] },
-  { label: 'Simulador com os 4 golpes', values: [true, true, true] },
+  { label: 'Simulador com os 4 golpes principais', values: [true, true, true] },
   { label: 'Analisar mensagens', values: [true, true, true] },
   { label: 'Sem anúncios', values: [true, true, true] },
-  { label: 'Minha lista de números', values: ['Só neste aparelho', 'Em qualquer aparelho', 'Em qualquer aparelho'] },
+  { label: 'Minha lista de números', values: ['Até 5 números', 'Sem limite', 'Sem limite'] },
+  { label: 'Golpes extras no simulador', values: [false, 'Vaga falsa e falso fornecedor', 'Vaga falsa e falso fornecedor'] },
+  { label: 'Relatório do seu treino', values: [false, true, true] },
   { label: 'Painel com várias pessoas', values: [false, 'Turmas sem limite', 'Equipe inteira'] },
-  { label: 'Relatório de acertos no simulador', values: [false, 'Por turma', 'Por equipe e setor'] },
-  { label: 'Cenários extras de golpe', values: [false, 'Golpes comuns entre jovens', 'Golpes do seu setor'] },
   { label: 'Material de apoio', values: [false, 'Plano de aula pronto', 'Treinamento guiado'] },
   { label: 'Consulta por integração (API)', values: [false, false, true] },
   { label: 'Suporte', values: ['Pelo feedback do site', 'Por e-mail', 'Prioritário'] },
@@ -57,13 +57,16 @@ export const FEATURES = [
 
 /** O que o plano gratuito NÃO tem, em comparação com os pagos. */
 export const FREE_LIMITS = [
-  'A lista de números fica salva só no aparelho em que você está',
-  'Não tem painel para acompanhar uma turma ou uma equipe',
-  'Não gera relatório de acertos do simulador',
-  'Só os 4 golpes principais no simulador, sem cenários extras',
+  'Minha lista guarda no máximo 5 números',
+  'Só os 4 golpes principais no simulador, sem os golpes extras',
+  'Sem relatório do seu treino no simulador',
+  'Sem painel para acompanhar uma turma ou uma equipe',
   'Sem material de aula ou treinamento guiado',
   'Sem consulta de números por integração (API)',
 ]
+
+export const LIST_LIMIT = 5
+export const TRIAL_DAYS = 7
 
 export const MIN_PEOPLE = 10
 export const PRICE_PER_PERSON = 4.9

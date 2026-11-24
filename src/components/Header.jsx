@@ -1,4 +1,4 @@
-import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn, Layers } from 'lucide-react'
+import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn, Sparkles } from 'lucide-react'
 import Logo from './Logo'
 import { formatPhone } from '../utils/phone'
 
@@ -7,11 +7,19 @@ export const NAV = [
   { id: 'simulador', label: 'Simular golpe', short: 'Simular', icon: PhoneIncoming },
   { id: 'mensagem', label: 'Analisar mensagem', short: 'Mensagem', icon: MessageSquareText },
   { id: 'dicas', label: 'Dicas', short: 'Dicas', icon: Lightbulb },
-  { id: 'minha-area', label: 'Minha área', short: 'Minha área', icon: UserRound },
-  { id: 'planos', label: 'Planos', short: 'Planos', icon: Layers, desktopOnly: true },
+  { id: 'minha-area', label: 'Minha área', short: 'Conta', icon: UserRound },
+  { id: 'planos', label: 'Planos', short: 'Planos', icon: Sparkles },
 ]
 
-export default function Header({ view, go, onReport, onLogin, user, bigText, onToggleText }) {
+function planTag({ isPremium, isTrial, daysLeft, canTrial }) {
+  if (isTrial) return `${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}`
+  if (isPremium) return 'Ativo'
+  if (canTrial) return 'Teste grátis'
+  return null
+}
+
+export default function Header({ view, go, onReport, onLogin, user, bigText, onToggleText, planInfo }) {
+  const tag = planTag(planInfo)
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
@@ -53,6 +61,20 @@ export default function Header({ view, go, onReport, onLogin, user, bigText, onT
       <nav className="mx-auto hidden max-w-5xl gap-1 px-4 md:flex" aria-label="Seções do site">
         {NAV.map(({ id, label, icon: Icon }) => {
           const active = view === id
+          if (id === 'planos')
+            return (
+              <a
+                key={id}
+                href="#planos"
+                aria-current={active ? 'page' : undefined}
+                className={`relative ml-auto flex items-center gap-2 px-3 pt-2 pb-3 text-[15px] font-semibold transition ${active ? 'text-brand' : 'text-brand hover:text-brand-dark'}`}
+              >
+                <Icon className="size-[18px]" />
+                {label}
+                {tag && <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white">{tag}</span>}
+                {active && <span className="absolute inset-x-2 bottom-0 h-[3px] rounded-full bg-brand" />}
+              </a>
+            )
           return (
             <a
               key={id}
@@ -74,26 +96,30 @@ export default function Header({ view, go, onReport, onLogin, user, bigText, onT
 }
 
 /** Barra de navegação fixa embaixo, no celular. */
-export function BottomNav({ view }) {
+export function BottomNav({ view, planInfo }) {
+  const tag = planInfo.isTrial ? `${planInfo.daysLeft}d` : planInfo.canTrial ? 'grátis' : null
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       aria-label="Seções do site"
     >
-      <div className="grid grid-cols-5">
-        {NAV.filter((n) => !n.desktopOnly).map(({ id, short, icon: Icon }) => {
+      <div className="grid grid-cols-6">
+        {NAV.map(({ id, short, icon: Icon }) => {
           const active = view === id
           return (
             <a
               key={id}
               href={`#${id}`}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-col items-center gap-1 px-1 pt-2.5 pb-2 text-[12px] leading-tight font-semibold ${
-                active ? 'text-brand' : 'text-ink-soft'
+              className={`flex flex-col items-center gap-1 px-0.5 pt-2.5 pb-2 text-[12px] leading-tight font-semibold ${
+                active || id === 'planos' ? 'text-brand' : 'text-ink-soft'
               }`}
             >
-              <span className={`grid h-7 w-12 place-items-center rounded-full transition ${active ? 'bg-brand-tint' : ''}`}>
+              <span className={`relative grid h-7 w-11 place-items-center rounded-full transition ${active ? 'bg-brand-tint' : ''}`}>
                 <Icon className="size-[20px]" />
+                {id === 'planos' && tag && (
+                  <span className="absolute -top-1.5 -right-2.5 rounded-full bg-brand px-1.5 text-[10px] leading-4 font-bold text-white">{tag}</span>
+                )}
               </span>
               <span className="text-center">{short}</span>
             </a>

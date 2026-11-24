@@ -1,4 +1,5 @@
-import { TriangleAlert, BadgeCheck, LockKeyhole, UserRoundX, PhoneIncoming } from 'lucide-react'
+import { TriangleAlert, BadgeCheck, LockKeyhole, UserRoundX, PhoneIncoming, Sparkles, Clock } from 'lucide-react'
+import { TRIAL_DAYS } from '../data/plans'
 import SearchPanel from '../components/SearchPanel'
 import ResultCard, { ResultSkeleton } from '../components/ResultCard'
 import RecentFeed from '../components/RecentFeed'
@@ -9,7 +10,49 @@ const TRUST = [
   { icon: LockKeyhole, text: 'Nunca pedimos senhas ou códigos' },
 ]
 
-export default function HomeView({ search, result, feed, isDemo, onReport, go }) {
+function PlanBanner({ planInfo, onTrial, go }) {
+  const { isPremium, isTrial, planName, daysLeft, canTrial } = planInfo
+  if (isPremium && !isTrial) return null
+  const title = isTrial
+    ? `Você está testando o plano ${planName}`
+    : canTrial
+      ? `Teste os recursos pagos de graça por ${TRIAL_DAYS} dias`
+      : 'Planos para escolas e empresas'
+  const text = isTrial
+    ? `Faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Golpes extras no simulador, relatório do treino e lista sem limite estão liberados.`
+    : canTrial
+      ? 'Golpes extras no simulador, relatório do seu treino e lista sem limite. Sem pagar e sem cadastro.'
+      : 'Treine uma turma ou uma equipe inteira, com painel e relatório.'
+  return (
+    <section className="flex flex-col gap-5 rounded-3xl border-2 border-brand/30 bg-white p-6 sm:flex-row sm:items-center sm:p-8">
+      <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-brand-tint text-brand">
+        {isTrial ? <Clock className="size-7" /> : <Sparkles className="size-7" />}
+      </span>
+      <div className="flex-1">
+        <h2 className="text-xl font-bold text-ink">{title}</h2>
+        <p className="mt-1 text-ink-soft">{text}</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        {canTrial && (
+          <button type="button" onClick={onTrial} className="btn btn-primary">
+            Começar teste grátis
+          </button>
+        )}
+        {isTrial ? (
+          <button type="button" onClick={() => go('simulador')} className="btn btn-primary">
+            Ver golpes extras
+          </button>
+        ) : (
+          <button type="button" onClick={() => go('planos')} className="btn btn-secondary">
+            Ver planos
+          </button>
+        )}
+      </div>
+    </section>
+  )
+}
+
+export default function HomeView({ search, result, feed, isDemo, onReport, go, planInfo, onTrial }) {
   return (
     <div className="space-y-12">
       <section>
@@ -64,6 +107,8 @@ export default function HomeView({ search, result, feed, isDemo, onReport, go })
           Fazer o teste
         </button>
       </section>
+
+      <PlanBanner planInfo={planInfo} onTrial={onTrial} go={go} />
 
       <RecentFeed reports={feed.recent} stats={feed.stats} error={feed.error} onReport={onReport} />
     </div>

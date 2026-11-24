@@ -15,7 +15,7 @@
 //   endings[id] = { outcome: 'safe' | 'partial' | 'scammed', title, text }
 // safe: true = atitude segura · false = arriscada · null = neutra
 // feedback = dica curta (modo treino) · why = explicação completa (análise final)
-import { Landmark, Users, Banknote, MessageSquare } from 'lucide-react'
+import { Landmark, Users, Banknote, MessageSquare, Briefcase, Receipt } from 'lucide-react'
 
 /** Truques usados pelos golpistas, explicados na análise final. */
 export const TACTICS = {
@@ -90,6 +90,14 @@ export const TACTICS = {
   premio: {
     title: 'Prêmio que você não pediu',
     text: 'Sorteios e cupons surpresa servem para você baixar a guarda.',
+  },
+  contaNova: {
+    title: 'Muda os dados de pagamento',
+    text: '"Mudamos de banco" é o centro desse golpe. Mudança de conta se confirma pelo contato que você já conhecia, nunca pelo de quem pediu.',
+  },
+  confiancaInicial: {
+    title: 'Paga pouco para ganhar confiança',
+    text: 'Um valor pequeno no começo faz tudo parecer verdade. É isca para você mandar um valor maior depois.',
   },
   desculpaSemSentido: {
     title: 'Explicação que não faz sentido',
@@ -620,6 +628,270 @@ export const SCENARIOS = [
       'Avise seus contatos por outro meio que o seu WhatsApp foi clonado.',
     ],
   },
+
+  // ─────────────────────────────────────────────── Golpes extras (planos pagos)
+  {
+    id: 'vaga-falsa',
+    premium: true,
+    title: 'Vaga de emprego falsa',
+    summary: 'Uma agência oferece trabalho fácil de casa, paga uma tarefa e depois pede depósito.',
+    icon: Briefcase,
+    caller: { name: 'Conecta Vagas', detail: 'Recrutamento', number: '(••) 9••••-••••' },
+    voices: { a: { pitch: 1.15 } },
+    start: 'inicio',
+    nodes: {
+      inicio: {
+        moment: 'Quando ela ofereceu a vaga',
+        lines: [
+          'Oi, tudo bem? Aqui é a Bianca, da Conecta Vagas. Seu currículo foi selecionado!',
+          'É um trabalho de casa, pelo celular: você só avalia produtos de lojas on-line e ganha até R$ 300 por dia.',
+          'Não precisa de experiência. Posso te explicar como começa?',
+        ],
+        tactics: ['ofertaBoaDemais'],
+        choices: [
+          {
+            label: 'Pode explicar, estou precisando muito de um trabalho.',
+            safe: null,
+            feedback: 'Compreensível. Mas salário alto para tarefa fácil é o primeiro sinal.',
+            why: 'É natural se interessar, ainda mais procurando emprego. Mas repare: pagamento alto, sem experiência, para uma tarefa simples. Esse é o primeiro sinal.',
+            next: 'tarefa',
+          },
+          {
+            label: 'Não mandei currículo para vocês. Qual é o CNPJ da empresa?',
+            safe: true,
+            feedback: 'Ótima pergunta! Veja como ela foge.',
+            why: 'Ótima pergunta. Empresa de verdade informa o CNPJ na hora, e você pode conferir no site da Receita Federal.',
+            next: 'desvia',
+          },
+          {
+            label: 'Não tenho interesse, obrigado.',
+            safe: true,
+            feedback: 'Decisão segura.',
+            why: 'Decisão segura. Proposta de trabalho que chega sem você se candidatar merece desconfiança.',
+            next: 'fim_seguro',
+          },
+        ],
+      },
+      desvia: {
+        moment: 'Quando você pediu o CNPJ',
+        lines: [
+          'Ah, o CNPJ eu te mando depois pelo WhatsApp, tá? É que hoje estamos com muitos candidatos.',
+          'Mas a vaga é só até hoje, viu? Quer garantir a sua?',
+        ],
+        tactics: ['fuga', 'urgencia'],
+        choices: [
+          {
+            label: 'Tá bom, quero garantir.',
+            safe: null,
+            feedback: 'A pressa fez você deixar a pergunta de lado.',
+            why: 'Ela não respondeu e ainda criou pressa. A urgência serve para você esquecer a pergunta que derrubaria o golpe.',
+            next: 'tarefa',
+          },
+          {
+            label: 'Sem CNPJ, não continuo.',
+            safe: true,
+            feedback: 'Firme e certo.',
+            why: 'Firme e certo. Sem dados da empresa, não há vaga de verdade.',
+            next: 'fim_seguro',
+          },
+        ],
+      },
+      tarefa: {
+        moment: 'Quando ela pagou a primeira tarefa',
+        lines: [
+          'Ótimo! Primeira tarefa: dar cinco estrelas para três produtos. Pronto, já te mandei R$ 20 pelo Pix.',
+          'Viu como é fácil? Agora tem a missão VIP: você deposita R$ 200 e recebe R$ 600 de volta em uma hora.',
+        ],
+        tactics: ['confiancaInicial', 'taxaAntecipada'],
+        choices: [
+          {
+            label: 'Vou depositar, já recebi os R$ 20 mesmo.',
+            safe: false,
+            feedback: 'Os R$ 20 eram a isca.',
+            why: 'Os R$ 20 eram a isca. Trabalho de verdade nunca pede que você deposite dinheiro para receber.',
+            next: 'vip',
+          },
+          {
+            label: 'Trabalho de verdade não pede depósito. Não vou pagar.',
+            safe: true,
+            feedback: 'Exatamente.',
+            why: 'Exatamente. Você ainda saiu com R$ 20 no bolso e não perdeu nada.',
+            next: 'fim_seguro',
+          },
+        ],
+      },
+      vip: {
+        moment: 'Quando o dinheiro "travou"',
+        lines: [
+          'Recebi! Só que sua conta entrou em revisão por causa do valor alto.',
+          'Para liberar os R$ 600, você precisa completar mais uma missão, de R$ 500.',
+        ],
+        tactics: ['escalada'],
+        choices: [
+          {
+            label: 'Vou pagar para liberar tudo.',
+            safe: false,
+            feedback: 'Sempre vai aparecer mais uma "missão".',
+            why: 'É assim que o golpe cresce: o dinheiro fica preso e sempre aparece mais uma cobrança para liberar.',
+            next: 'fim_golpe',
+          },
+          {
+            label: 'Não pago mais nada.',
+            safe: true,
+            feedback: 'Parar agora evita perder mais.',
+            why: 'Parar é a decisão certa, mesmo depois de ter pago. Insistir só aumentaria o prejuízo.',
+            next: 'fim_parcial',
+          },
+        ],
+      },
+    },
+    endings: {
+      fim_seguro: {
+        outcome: 'safe',
+        title: 'Golpe evitado!',
+        text: 'Vaga de verdade não cobra nada de quem vai trabalhar. Desconfie de salário alto para tarefas fáceis.',
+      },
+      fim_parcial: {
+        outcome: 'partial',
+        title: 'Você parou a tempo',
+        text: 'Você perdeu R$ 180 (os R$ 200 menos os R$ 20 da isca), mas evitou perder mais. Peça o MED ao seu banco e registre um boletim de ocorrência.',
+      },
+      fim_golpe: {
+        outcome: 'scammed',
+        title: 'Você caiu no golpe',
+        text: 'Foram R$ 700 depositados e nenhum pagamento. Os R$ 20 do começo eram só isca para ganhar a sua confiança.',
+      },
+    },
+    howItWorks: [
+      'O golpista oferece um trabalho fácil, de casa, com pagamento alto, muitas vezes dizendo que seu currículo foi selecionado.',
+      'Paga um valor pequeno na primeira tarefa para ganhar a sua confiança.',
+      'Depois pede um depósito para liberar "missões" que pagariam mais.',
+      'O dinheiro fica preso e aparecem novas cobranças para liberar, até você parar.',
+    ],
+    realLife: [
+      'Empresa séria não cobra para você trabalhar, nem pede depósito.',
+      'Confira o CNPJ da empresa no site da Receita Federal e procure reclamações sobre ela.',
+      'Desconfie de pagamento alto por tarefas simples, como curtir vídeos ou avaliar produtos.',
+      'Se já pagou, peça o MED ao seu banco e registre um boletim de ocorrência.',
+    ],
+  },
+
+  {
+    id: 'falso-fornecedor',
+    premium: true,
+    title: 'Falso fornecedor',
+    summary: 'O "financeiro" de um fornecedor liga dizendo que a conta para pagamento mudou.',
+    icon: Receipt,
+    caller: { name: 'Distribuidora Norte Sul', detail: 'Fornecedor', number: '(••) ••••-••••' },
+    voices: { a: { pitch: 0.95 } },
+    start: 'inicio',
+    nodes: {
+      inicio: {
+        moment: 'Quando o "fornecedor" ligou',
+        lines: [
+          'Bom dia! Aqui é o Marcelo, do financeiro da Distribuidora Norte Sul. Tudo certo por aí?',
+          'Estou ligando por causa da fatura de novembro, de R$ 18.450. A gente mudou de banco esta semana.',
+          'Vou te passar a conta nova para vocês fazerem o pagamento, tá bom?',
+        ],
+        tactics: ['autoridade', 'contaNova'],
+        choices: [
+          {
+            label: 'Claro, pode passar.',
+            safe: null,
+            feedback: 'Mudança de conta é o sinal mais importante desse golpe.',
+            why: 'Parece rotina, e é por isso que funciona. Mudança de dados bancários é exatamente o que o golpista precisa que você aceite.',
+            next: 'conta',
+          },
+          {
+            label: 'Vou confirmar ligando no telefone do contrato e te retorno.',
+            safe: true,
+            feedback: 'Perfeito.',
+            why: 'Perfeito. Confirmar pelo contato que já está no contrato, e não pelo de quem ligou, derruba esse golpe.',
+            next: 'fim_seguro',
+          },
+          {
+            label: 'Manda por e-mail que eu vejo.',
+            safe: null,
+            feedback: 'Cuidado: o e-mail também pode ser falso.',
+            why: 'Pedir por escrito ajuda, mas o e-mail também pode vir do golpista. O que protege é confirmar por um contato que você já tinha.',
+            next: 'email',
+          },
+        ],
+      },
+      email: {
+        moment: 'Quando você pediu por e-mail',
+        lines: [
+          'Mando sim! Acabei de enviar, do financeiro arroba nortesul-pagamentos ponto com.',
+          'Só peço agilidade: se o pagamento não cair hoje, o sistema cancela a entrega de amanhã.',
+        ],
+        tactics: ['urgencia', 'contaNova'],
+        choices: [
+          {
+            label: 'Esse e-mail é diferente do de sempre. Vou ligar no número do contrato.',
+            safe: true,
+            feedback: 'Ótimo olho!',
+            why: 'Ótimo olho. Um endereço parecido com o verdadeiro é um truque comum, e você confirmou pelo caminho certo.',
+            next: 'fim_seguro',
+          },
+          {
+            label: 'Tá, vou pagar hoje para não atrasar a entrega.',
+            safe: false,
+            feedback: 'A pressa da entrega fez você pular a confirmação.',
+            why: 'A ameaça de cancelar a entrega serviu para você pagar sem confirmar. O dinheiro foi para a conta do golpista.',
+            next: 'fim_golpe',
+          },
+        ],
+      },
+      conta: {
+        moment: 'Quando ele passou a conta nova',
+        lines: [
+          'Anota aí: o Pix agora é o CNPJ da Norte Sul Pagamentos, uma empresa do nosso grupo.',
+          'E se pagar até as quatro da tarde, a gente mantém o desconto de 5%.',
+        ],
+        tactics: ['contaNova', 'urgencia'],
+        choices: [
+          {
+            label: 'O nome não é o mesmo da nota fiscal. Vou confirmar com o fornecedor.',
+            safe: true,
+            feedback: 'Exatamente.',
+            why: 'Exatamente. Quem recebe o dinheiro precisa ter o mesmo nome e CNPJ da nota fiscal.',
+            next: 'fim_seguro',
+          },
+          {
+            label: 'Ótimo, vou pagar agora para garantir o desconto.',
+            safe: false,
+            feedback: 'O desconto era a isca para você ter pressa.',
+            why: 'O desconto com prazo curto era a isca. O nome diferente de quem recebe já mostrava que não era o fornecedor.',
+            next: 'fim_golpe',
+          },
+        ],
+      },
+    },
+    endings: {
+      fim_seguro: {
+        outcome: 'safe',
+        title: 'Golpe evitado!',
+        text: 'Confirmar mudança de conta pelo contato que já está no contrato é a regra de ouro. O fornecedor de verdade entende.',
+      },
+      fim_golpe: {
+        outcome: 'scammed',
+        title: 'Você caiu no golpe',
+        text: 'R$ 18.450 foram para a conta de golpistas, e a fatura verdadeira continua em aberto. O fornecedor real nunca mudou de banco.',
+      },
+    },
+    howItWorks: [
+      'O golpista descobre quem são os fornecedores da empresa, por vazamentos ou e-mails invadidos.',
+      'Liga ou escreve fingindo ser o financeiro do fornecedor e diz que a conta de pagamento mudou.',
+      'Usa um nome de empresa parecido e um prazo curto, às vezes com desconto, para apressar o pagamento.',
+      'O dinheiro vai para outra conta e o fornecedor verdadeiro continua sem receber.',
+    ],
+    realLife: [
+      'Confirme qualquer mudança de conta pelo telefone do contrato, nunca pelo contato que pediu a mudança.',
+      'Confira se o nome e o CNPJ de quem recebe são os mesmos da nota fiscal.',
+      'Combine uma regra na empresa: pagamento para conta nova precisa da aprovação de duas pessoas.',
+      'Se pagou, avise o banco na hora, peça o MED e registre um boletim de ocorrência.',
+    ],
+  },
 ]
 
 /** Finais usados por todos os cenários. */
@@ -637,3 +909,6 @@ export const COMMON_ENDINGS = {
 }
 
 export const HANGUP_WHY = DESLIGAR_WHY
+
+export const FREE_SCENARIOS = SCENARIOS.filter((s) => !s.premium)
+export const PREMIUM_SCENARIOS = SCENARIOS.filter((s) => s.premium)
