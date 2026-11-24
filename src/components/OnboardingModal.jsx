@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Bell, Ban, Flag, PhoneIncoming, MessageSquareText, Search, Sparkles, Users, Heart, ShieldCheck } from 'lucide-react'
 import Modal from './Modal'
 import StatusBadge from './StatusBadge'
-import { LogoMark } from './Logo'
+import { LogoMark, Wordmark } from './Logo'
 import { TRIAL_DAYS } from '../data/plans'
 
 function Frame({ children }) {
@@ -17,7 +17,7 @@ const STEPS = [
       <Frame>
         <div className="flex flex-col items-center gap-3">
           <LogoMark className="size-16" />
-          <p className="font-bold text-ink">Alerta Golpe</p>
+          <Wordmark className="h-7 w-auto" />
         </div>
       </Frame>
     ),
