@@ -11,6 +11,9 @@ import SimulatorView from './views/SimulatorView'
 import MessageView from './views/MessageView'
 import TipsView from './views/TipsView'
 import AccountView from './views/AccountView'
+import PlansView from './views/PlansView'
+import SubscribeModal from './components/SubscribeModal'
+import { PLAN_BY_ID } from './data/plans'
 import { useReports } from './hooks/useReports'
 import { useStored, KEYS } from './hooks/useStored'
 import { useView } from './hooks/useView'
@@ -44,6 +47,8 @@ function Site() {
   const [watchlist, setWatchlist] = useStored(KEYS.watchlist, [])
   const [training, setTraining] = useStored(KEYS.training, {})
   const [textSize, setTextSize] = useStored(KEYS.textSize, 'normal')
+  const [plan, setPlan] = useStored(KEYS.plan, null)
+  const [subscribeId, setSubscribeId] = useState(null)
 
   // Janelas
   const [reportModal, setReportModal] = useState({ open: false, phone: '' })
@@ -159,6 +164,17 @@ function Site() {
         )}
         {view === 'simulador' && <SimulatorView training={training} onStart={openScenario} />}
         {view === 'mensagem' && <MessageView />}
+        {view === 'planos' && (
+          <PlansView
+            current={plan}
+            onChoose={(id) => {
+              if (id === 'gratuito') {
+                setPlan(null)
+                setToast('Você voltou para o plano Gratuito.')
+              } else setSubscribeId(id)
+            }}
+          />
+        )}
         {view === 'dicas' && <TipsView onReport={openReport} />}
         {view === 'minha-area' && (
           <AccountView
@@ -176,6 +192,11 @@ function Site() {
             training={training}
             onReport={openReport}
             onFeedback={() => setFeedbackOpen(true)}
+            plan={plan}
+            onEndPlan={() => {
+              setPlan(null)
+              setToast('Simulação encerrada. Você está no plano Gratuito.')
+            }}
             go={go}
           />
         )}
@@ -190,7 +211,10 @@ function Site() {
               {isDemo && ' Versão de demonstração: os números da base são fictícios.'}
             </p>
           </div>
-          <button type="button" onClick={() => setFeedbackOpen(true)} className="btn btn-secondary">Enviar feedback</button>
+          <div className="flex gap-2">
+            <a href="#planos" className="btn btn-secondary">Planos</a>
+            <button type="button" onClick={() => setFeedbackOpen(true)} className="btn btn-secondary">Enviar feedback</button>
+          </div>
         </div>
       </footer>
 
@@ -225,6 +249,16 @@ function Site() {
             go('simulador')
           }}
           onFinish={finishTraining}
+        />
+      )}
+      {subscribeId && (
+        <SubscribeModal
+          planId={subscribeId}
+          onClose={() => setSubscribeId(null)}
+          onActivate={(sub) => {
+            setPlan(sub)
+            setToast(`Plano ${PLAN_BY_ID[sub.plan].name} ativado na simulação.`)
+          }}
         />
       )}
       <Toast message={toast} onClose={closeToast} />

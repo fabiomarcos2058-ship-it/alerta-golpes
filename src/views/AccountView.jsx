@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { LogIn, LogOut, Bookmark, Trash2, Search, Flag, ShieldCheck, Shield, MessageSquareHeart, Smartphone } from 'lucide-react'
+import { LogIn, LogOut, Bookmark, Trash2, Search, Flag, ShieldCheck, Shield, MessageSquareHeart, Smartphone, Layers } from 'lucide-react'
+import { PLAN_BY_ID } from '../data/plans'
 import StatusBadge from '../components/StatusBadge'
 import { CATEGORY_BY_ID } from '../data/constants'
 import { SCENARIOS } from '../data/scamScenarios'
@@ -15,12 +16,12 @@ function Section({ title, description, children, action }) {
         </div>
         {action}
       </div>
-      <div className="mt-4">{children}</div>
+      {children && <div className="mt-4">{children}</div>}
     </section>
   )
 }
 
-export default function AccountView({ user, onLogin, onLogout, watchlist, onRemove, onCheck, loadMyReports, training, onReport, onFeedback, go, isDemo }) {
+export default function AccountView({ user, onLogin, onLogout, watchlist, onRemove, onCheck, loadMyReports, training, onReport, onFeedback, go, isDemo, plan, onEndPlan }) {
   const [mine, setMine] = useState(null)
 
   useEffect(() => {
@@ -148,6 +149,21 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
           ))}
         </ul>
       </Section>
+
+      <Section
+        title="Meu plano"
+        description={plan ? `${PLAN_BY_ID[plan.plan].name} (simulação): ${plan.summary}. Nenhuma cobrança é feita.` : 'Gratuito: tudo o que protege você, sem anúncios.'}
+        action={
+          <div className="flex gap-2">
+            {plan && (
+              <button type="button" onClick={onEndPlan} className="btn btn-ghost">Encerrar simulação</button>
+            )}
+            <button type="button" onClick={() => go('planos')} className="btn btn-secondary">
+              <Layers className="size-4" /> Ver planos
+            </button>
+          </div>
+        }
+      />
 
       <Section title="Sua opinião" description="Encontrou um problema ou tem uma ideia? Conte para a gente.">
         <button type="button" onClick={onFeedback} className="btn btn-secondary">

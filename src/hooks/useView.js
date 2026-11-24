@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export const VIEWS = ['consultar', 'simulador', 'mensagem', 'dicas', 'minha-area']
+export const VIEWS = ['consultar', 'simulador', 'mensagem', 'dicas', 'minha-area', 'planos']
 
 const fromHash = () => {
   const h = window.location.hash.replace('#', '')

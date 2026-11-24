@@ -52,4 +52,5 @@ export const KEYS = {
   watchlist: 'alerta-golpe:minha-lista:v1',
   training: 'alerta-golpe:treino:v1',
   textSize: 'alerta-golpe:texto:v1',
+  plan: 'alerta-golpe:plano-simulado:v1',
 }

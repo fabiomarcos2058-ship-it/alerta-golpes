@@ -1,4 +1,4 @@
-import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn } from 'lucide-react'
+import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn, Layers } from 'lucide-react'
 import Logo from './Logo'
 import { formatPhone } from '../utils/phone'
 
@@ -8,6 +8,7 @@ export const NAV = [
   { id: 'mensagem', label: 'Analisar mensagem', short: 'Mensagem', icon: MessageSquareText },
   { id: 'dicas', label: 'Dicas', short: 'Dicas', icon: Lightbulb },
   { id: 'minha-area', label: 'Minha área', short: 'Minha área', icon: UserRound },
+  { id: 'planos', label: 'Planos', short: 'Planos', icon: Layers, desktopOnly: true },
 ]
 
 export default function Header({ view, go, onReport, onLogin, user, bigText, onToggleText }) {
@@ -80,7 +81,7 @@ export function BottomNav({ view }) {
       aria-label="Seções do site"
     >
       <div className="grid grid-cols-5">
-        {NAV.map(({ id, short, icon: Icon }) => {
+        {NAV.filter((n) => !n.desktopOnly).map(({ id, short, icon: Icon }) => {
           const active = view === id
           return (
             <a
