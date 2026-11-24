@@ -1,4 +1,4 @@
-import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn, Sparkles } from 'lucide-react'
+import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn, Sparkles, Bell } from 'lucide-react'
 import Logo from './Logo'
 import { formatPhone } from '../utils/phone'
 
@@ -6,7 +6,7 @@ export const NAV = [
   { id: 'consultar', label: 'Consultar', short: 'Consultar', icon: Search },
   { id: 'simulador', label: 'Simular golpe', short: 'Simular', icon: PhoneIncoming },
   { id: 'mensagem', label: 'Analisar mensagem', short: 'Mensagem', icon: MessageSquareText },
-  { id: 'dicas', label: 'Dicas', short: 'Dicas', icon: Lightbulb },
+  { id: 'dicas', label: 'Ajuda e dicas', short: 'Ajuda', icon: Lightbulb },
   { id: 'minha-area', label: 'Minha área', short: 'Conta', icon: UserRound },
   { id: 'planos', label: 'Planos', short: 'Planos', icon: Sparkles },
 ]
@@ -18,7 +18,7 @@ function planTag({ isPremium, isTrial, daysLeft, canTrial }) {
   return null
 }
 
-export default function Header({ view, go, onReport, onLogin, user, bigText, onToggleText, planInfo }) {
+export default function Header({ view, go, onReport, onLogin, user, bigText, onToggleText, planInfo, unread, onBell }) {
   const tag = planTag(planInfo)
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
@@ -49,6 +49,20 @@ export default function Header({ view, go, onReport, onLogin, user, bigText, onT
               <LogIn className="size-5" /> Entrar
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={onBell}
+            className="btn btn-ghost relative px-2.5"
+            aria-label={unread ? `Notificações, ${unread} ${unread === 1 ? 'nova' : 'novas'}` : 'Notificações'}
+          >
+            <Bell className="size-5" />
+            {unread > 0 && (
+              <span className="absolute top-1 right-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[11px] leading-none font-bold text-white">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
 
           <button type="button" onClick={() => onReport()} className="btn btn-secondary px-3" aria-label="Denunciar um número">
             <Flag className="size-[18px] text-danger" />

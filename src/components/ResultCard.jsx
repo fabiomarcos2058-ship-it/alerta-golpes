@@ -1,4 +1,4 @@
-import { Flag, MessageSquare, Bookmark, BookmarkCheck, Share2, MapPin, Megaphone } from 'lucide-react'
+import { Flag, MessageSquare, Bookmark, BookmarkCheck, Share2, MapPin, Megaphone, PhoneOff, ChevronDown, Scale } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import { CATEGORY_BY_ID, SEVERITY_BY_ID, STATUS } from '../data/constants'
 import { formatDateTime, formatPhone, timeAgo } from '../utils/phone'
@@ -44,7 +44,13 @@ function CategoryBars({ categories, barClass }) {
   )
 }
 
-function PhoneResult({ result, onReport, saved, onToggleSave, onShare }) {
+const BLOCK_STEPS = [
+  { os: 'Android', text: 'Abra o app Telefone, vá em Recentes, toque e segure o número e escolha "Bloquear" ou "Denunciar como spam".' },
+  { os: 'iPhone', text: 'Abra o app Telefone, vá em Recentes, toque no "i" ao lado do número e escolha "Bloquear Contato".' },
+  { os: 'WhatsApp', text: 'Abra a conversa, toque no nome do contato e escolha "Bloquear" e depois "Denunciar".' },
+]
+
+function PhoneResult({ result, onReport, saved, onToggleSave, onShare, onReview }) {
   const meta = STATUS[result.status]
   const Icon = meta.icon
   const { severity } = result
@@ -122,6 +128,35 @@ function PhoneResult({ result, onReport, saved, onToggleSave, onShare }) {
             <Flag className="size-5 text-danger" /> Denunciar este número
           </button>
         </div>
+
+        <details className="group mt-4 rounded-xl border border-line">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-ink [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-2">
+              <PhoneOff className="size-5 text-ink-soft" /> Como bloquear este número no celular
+            </span>
+            <ChevronDown className="size-5 text-ink-soft transition group-open:rotate-180" />
+          </summary>
+          <ul className="space-y-3 border-t border-line px-4 py-4">
+            {BLOCK_STEPS.map((b) => (
+              <li key={b.os} className="text-[15px] text-ink">
+                <b>{b.os}:</b> {b.text}
+              </li>
+            ))}
+            <li className="text-[15px] text-ink-soft">
+              Para telemarketing, cadastre seu número no site oficial{' '}
+              <a href="https://www.naomeperturbe.com.br" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">Não Me Perturbe</a>.
+            </li>
+          </ul>
+        </details>
+
+        {result.total > 0 && onReview && (
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 text-[15px] text-ink-soft">
+            <Scale className="size-4" /> Este número é seu?
+            <button type="button" onClick={() => onReview(result.phone)} className="font-semibold text-brand hover:underline">
+              Pedir revisão das denúncias
+            </button>
+          </p>
+        )}
       </div>
     </article>
   )

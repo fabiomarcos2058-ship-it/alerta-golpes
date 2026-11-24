@@ -128,11 +128,29 @@ qualquer pessoa). Navegação em abas: **Consultar**, **Simular golpe**, **Anali
 
 Nenhuma compra é real e nenhum dado é pedido: o plano fica marcado só no aparelho (localStorage).
 
-- **Gratuito**: consultar, denunciar, os 4 golpes principais do simulador, analisar mensagens e dicas. Limites: lista com até 5 números, sem golpes extras, sem relatório do treino e sem painel de turma/equipe.
-- **Teste grátis de 7 dias**: libera tudo dos planos pagos uma vez por aparelho e volta sozinho para o Gratuito quando acaba.
-- **Escolas e Empresas**: golpes extras no simulador (vaga de emprego falsa e falso fornecedor), relatório do treino, painel de exemplo e lista sem limite.
-- A aba **Planos** aparece no menu do celular e do computador, com selo do teste ou dos dias restantes, e há um convite ao teste na página inicial.
-- Código: `src/hooks/usePlan.js`, `src/components/UpgradePrompt.jsx`, `src/data/plans.js`.
+| Plano | Preço (proposta) | Para quem |
+|---|---|---|
+| Gratuito | R$ 0 | Qualquer pessoa: consultar, denunciar, avisos das denúncias, 4 golpes do simulador |
+| Plus | R$ 19,90/mês ou R$ 199/ano | Golpes extras, relatório do treino, lista sem limite com avisos |
+| Família | R$ 39,90/mês ou R$ 399/ano | Tudo do Plus para 6 pessoas e painel da família |
+| Escolas | R$ 1.490/ano (pública R$ 690) | Painel da turma, plano de aula, certificado |
+| Empresas | R$ 12,90 por pessoa/mês (mín. 20) | Painel da equipe, treinamento guiado |
+| Bancos e operadoras | a partir de R$ 9.900/mês | API, aviso no app do cliente, mapa de golpes |
+
+- Teste grátis de 7 dias (Plus, ou outro plano pelo cartão dele), uma vez por aparelho; volta sozinho ao Gratuito.
+- Código: `src/data/plans.js`, `src/hooks/usePlan.js`, `src/components/SubscribeModal.jsx`, `src/views/PlansView.jsx`.
+
+## Notificações (simuladas)
+
+O sino no topo mostra avisos sobre os números que a pessoa denunciou: denúncia recebida, confirmada por outras pessoas, número bloqueado, denúncia apagada (ex.: dono provou que o número foi clonado) ou alerta arquivado. Nos planos pagos, também avisa sobre números da lista. Nada é enviado de verdade: os avisos são criados no aparelho com horário no futuro e, na demonstração, chegam em segundos. Código: `src/lib/notifications.js`, `src/hooks/useNotifications.js`, `src/components/NotificationsModal.jsx`.
+
+## Tutorial e outras funções
+
+- Tutorial de 6 passos na primeira visita (`OnboardingModal`), que pode ser revisto em Ajuda e dicas, Minha área e no rodapé.
+- Página "Ajuda e dicas" com o passo a passo de uso.
+- Situação de cada denúncia em Minha área e estimativa de quantas pessoas ela ajudou.
+- "Este número é seu? Pedir revisão": pedido simulado, sem dados, para proteger quem foi denunciado por engano.
+- "Como bloquear este número" (Android, iPhone e WhatsApp) no resultado da consulta.
 
 ## Logo
 

@@ -14,7 +14,12 @@ import AccountView from './views/AccountView'
 import PlansView from './views/PlansView'
 import SubscribeModal from './components/SubscribeModal'
 import { UpgradeModal } from './components/UpgradePrompt'
-import { PLAN_BY_ID, LIST_LIMIT, TRIAL_DAYS } from './data/plans'
+import NotificationsModal from './components/NotificationsModal'
+import OnboardingModal from './components/OnboardingModal'
+import ReviewModal from './components/ReviewModal'
+import { useNotifications } from './hooks/useNotifications'
+import { reportNotifications, watchNotifications, reviewNotifications } from './lib/notifications'
+import { PLAN_BY_ID, LIST_LIMIT, TRIAL_DAYS, TRIAL_PLAN } from './data/plans'
 import { usePlan } from './hooks/usePlan'
 import { useReports } from './hooks/useReports'
 import { useStored, KEYS } from './hooks/useStored'
@@ -59,12 +64,22 @@ function Site() {
   const [simScenario, setSimScenario] = useState(null)
   const [toast, setToast] = useState('')
   const [upgrade, setUpgrade] = useState(null) // { title, text } quando bate num limite
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [reviewPhone, setReviewPhone] = useState(null)
+  const [onboarded, setOnboarded] = useStored(KEYS.onboarded, false)
+  const [tutorialOpen, setTutorialOpen] = useState(!onboarded)
+
+  const onArrive = useCallback(
+    (n) => setToast({ text: n.title, bell: true, actionLabel: 'Ver notificação', onAction: () => setNotifOpen(true) }),
+    []
+  )
+  const center = useNotifications({ onArrive })
 
   const onTrialEnded = useCallback(() => setToast('Seu teste grátis terminou. Você voltou para o plano Gratuito.'), [])
   const planInfo = usePlan({ onTrialEnded })
   const { isPremium, startTrial, subscribe, cancel } = planInfo
   const beginTrial = useCallback(
-    (planId = 'escolas') => {
+    (planId = TRIAL_PLAN) => {
       startTrial(planId)
       setToast(`Teste grátis do plano ${PLAN_BY_ID[planId].name} ativado por ${TRIAL_DAYS} dias.`)
     },
@@ -114,7 +129,8 @@ function Site() {
       })
     } else {
       setWatchlist((prev) => [{ phone: result.phone, status: result.status, savedAt: Date.now() }, ...prev])
-      setToast('Número salvo na sua lista. Veja em Minha área.')
+      if (isPremium) center.schedule(watchNotifications(result.phone))
+      setToast(isPremium ? 'Número salvo. Avisamos quando ele receber novas denúncias.' : 'Número salvo na sua lista. Veja em Minha área.')
     }
   }
 
@@ -138,6 +154,7 @@ function Site() {
 
   const submitReport = async (form) => {
     const report = await addReport(form)
+    center.schedule(reportNotifications(report.phone))
     setToast(`Denúncia de ${formatPhone(report.phone)} enviada. Obrigado!`)
     return report
   }
@@ -153,11 +170,14 @@ function Site() {
   const openScenario = (id) => {
     const sc = SCENARIOS.find((s) => s.id === id)
     if (sc.premium && !isPremium) {
-      setUpgrade({ title: 'Golpe extra do plano pago', text: 'Os golpes extras do simulador fazem parte dos planos Escolas e Empresas.' })
+      setUpgrade({ title: 'Golpe extra do plano pago', text: 'Os golpes extras do simulador fazem parte dos planos pagos, a partir do Plus.' })
       return
     }
     setSimScenario(sc)
   }
+  const reviewDays = isPremium ? 2 : 7
+  const submitReview = (phone) => center.schedule(reviewNotifications(phone, reviewDays))
+
   const access = { isPremium, canTrial: planInfo.canTrial, onTrial: () => beginTrial(), onPlans: () => go('planos') }
 
   return (
@@ -167,6 +187,8 @@ function Site() {
         go={go}
         user={user}
         planInfo={planInfo}
+        unread={center.unread}
+        onBell={() => setNotifOpen(true)}
         onReport={openReport}
         onLogin={() => setLoginOpen(true)}
         bigText={textSize === 'grande'}
@@ -191,7 +213,7 @@ function Site() {
               recent: recentSearches,
               clearRecent: () => setRecentSearches([]),
             }}
-            result={{ result, saved, onToggleSave: toggleSave, onShare: share }}
+            result={{ result, saved, onToggleSave: toggleSave, onShare: share, onReview: setReviewPhone }}
             feed={{ recent, stats, error: feedError }}
           />
         )}
@@ -209,7 +231,7 @@ function Site() {
             }}
           />
         )}
-        {view === 'dicas' && <TipsView onReport={openReport} />}
+        {view === 'dicas' && <TipsView onReport={openReport} onTutorial={() => setTutorialOpen(true)} />}
         {view === 'minha-area' && (
           <AccountView
             user={user}
@@ -225,10 +247,12 @@ function Site() {
             loadMyReports={loadMyReports}
             training={training}
             attempts={attempts}
+            notifications={center.visible}
+            onTutorial={() => setTutorialOpen(true)}
             onReport={openReport}
             onFeedback={() => setFeedbackOpen(true)}
             planInfo={planInfo}
-            onTrial={() => beginTrial()}
+            onTrial={(id) => beginTrial(id)}
             onEndPlan={() => {
               cancel()
               setToast('Simulação encerrada. Você está no plano Gratuito.')
@@ -248,6 +272,7 @@ function Site() {
             </p>
           </div>
           <div className="flex gap-2">
+            <button type="button" onClick={() => setTutorialOpen(true)} className="btn btn-secondary">Como usar</button>
             <a href="#planos" className="btn btn-secondary">Planos</a>
             <button type="button" onClick={() => setFeedbackOpen(true)} className="btn btn-secondary">Enviar feedback</button>
           </div>
@@ -289,6 +314,7 @@ function Site() {
       )}
       {subscribeId && (
         <SubscribeModal
+          key={subscribeId}
           planId={subscribeId}
           onClose={() => setSubscribeId(null)}
           onActivate={(sub) => {
@@ -306,6 +332,26 @@ function Site() {
         onTrial={() => beginTrial()}
         onPlans={() => go('planos')}
       />
+      <NotificationsModal
+        open={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        center={center}
+        isPremium={isPremium}
+        onCheck={(phone) => runSearch(phone)}
+        onPlans={() => go('planos')}
+      />
+      <OnboardingModal
+        open={tutorialOpen}
+        onClose={() => {
+          setTutorialOpen(false)
+          setOnboarded(true)
+        }}
+        onStartSearch={() => {
+          go('consultar')
+          setTimeout(() => document.querySelector('main input')?.focus(), 80)
+        }}
+      />
+      {reviewPhone && <ReviewModal phone={reviewPhone} days={reviewDays} onClose={() => setReviewPhone(null)} onSubmit={submitReview} />}
       <Toast message={toast} onClose={closeToast} />
     </div>
   )

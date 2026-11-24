@@ -16,13 +16,13 @@ function PlanBanner({ planInfo, onTrial, go }) {
   const title = isTrial
     ? `Você está testando o plano ${planName}`
     : canTrial
-      ? `Teste os recursos pagos de graça por ${TRIAL_DAYS} dias`
-      : 'Planos para escolas e empresas'
+      ? `Teste o plano Plus de graça por ${TRIAL_DAYS} dias`
+      : 'Planos para família, escolas e empresas'
   const text = isTrial
     ? `Faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Golpes extras no simulador, relatório do treino e lista sem limite estão liberados.`
     : canTrial
-      ? 'Golpes extras no simulador, relatório do seu treino e lista sem limite. Sem pagar e sem cadastro.'
-      : 'Treine uma turma ou uma equipe inteira, com painel e relatório.'
+      ? 'Golpes extras no simulador, relatório do seu treino e avisos dos números da sua lista. Sem pagar e sem cadastro.'
+      : 'Proteja a família, uma turma ou uma equipe inteira, com painel e relatório.'
   return (
     <section className="flex flex-col gap-5 rounded-3xl border-2 border-brand/30 bg-white p-6 sm:flex-row sm:items-center sm:p-8">
       <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-brand-tint text-brand">

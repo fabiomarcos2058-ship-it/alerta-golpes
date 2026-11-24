@@ -1,40 +1,56 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CircleCheck, FlaskConical, Info, Minus, Plus } from 'lucide-react'
 import Modal from './Modal'
-import { MIN_PEOPLE, PLAN_BY_ID, PRICE_PER_PERSON, SCHOOL_PRIVATE_YEAR, brl } from '../data/plans'
+import { PLAN_BY_ID, brl } from '../data/plans'
+
+function Choice({ name, options, value, onChange }) {
+  return (
+    <div className={`grid gap-2 ${options.length > 2 ? 'sm:grid-cols-3' : 'grid-cols-2'}`}>
+      {options.map((o) => (
+        <label key={o.id} className="cursor-pointer">
+          <input type="radio" name={name} value={o.id} checked={value === o.id} onChange={() => onChange(o.id)} className="peer sr-only" />
+          <span className="flex h-full flex-col rounded-xl border border-line p-3 transition peer-checked:border-brand peer-checked:bg-brand-tint peer-focus-visible:ring-4 peer-focus-visible:ring-brand/20">
+            <span className="font-semibold text-ink">{o.label}</span>
+            <span className="text-sm text-ink-soft">{o.price}</span>
+          </span>
+        </label>
+      ))}
+    </div>
+  )
+}
 
 /**
  * "Assinatura" de demonstração: só registra no aparelho qual plano a pessoa escolheu.
  * Não tem campo de cartão, CPF, e-mail nem nenhum outro dado, e nada é cobrado.
  */
 export default function SubscribeModal({ planId, onClose, onActivate }) {
-  const plan = planId && PLAN_BY_ID[planId]
-  const [schoolType, setSchoolType] = useState('publica')
-  const [people, setPeople] = useState(25)
+  const plan = PLAN_BY_ID[planId]
+  const [billing, setBilling] = useState('mensal')
+  const [schoolType, setSchoolType] = useState('particular')
+  const [people, setPeople] = useState(plan?.minPeople ?? 20)
+  const [tier, setTier] = useState('ate-100mil')
   const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    setDone(false)
-    setSchoolType('publica')
-    setPeople(25)
-  }, [planId])
 
   if (!plan) return null
 
-  const clamp = (n) => Math.min(5000, Math.max(MIN_PEOPLE, Math.round(Number(n) || MIN_PEOPLE)))
+  const min = plan.minPeople ?? 1
+  const clamp = (v) => Math.min(5000, Math.max(min, Math.round(Number(v) || min)))
   const n = clamp(people)
-  const summary =
-    plan.id === 'empresas'
-      ? `${n} pessoas, ${brl(n * PRICE_PER_PERSON)} por mês`
-      : plan.id === 'escolas'
-        ? schoolType === 'publica'
-          ? 'Escola pública, grátis'
-          : `Escola particular, ${brl(SCHOOL_PRIVATE_YEAR)} por ano`
-        : 'Grátis'
+
+  let summary
+  if (plan.monthly) {
+    summary = billing === 'anual' ? `Anual, ${brl(plan.yearly)} por ano` : `Mensal, ${brl(plan.monthly)} por mês`
+  } else if (plan.id === 'escolas') {
+    summary = schoolType === 'publica' ? `Escola pública, ${brl(plan.yearlyPublic)} por ano` : `Escola particular, ${brl(plan.yearlyPrivate)} por ano`
+  } else if (plan.id === 'empresas') {
+    summary = `${n} pessoas, ${brl(n * plan.perPerson)} por mês`
+  } else {
+    const t = plan.tiers.find((x) => x.id === tier)
+    summary = t.monthly ? `${t.label}, ${brl(t.monthly)} por mês` : `${t.label}, valor sob consulta`
+  }
 
   const activate = () => {
-    setPeople(n)
-    onActivate({ plan: plan.id, summary, people: plan.id === 'empresas' ? n : null, schoolType: plan.id === 'escolas' ? schoolType : null, at: Date.now() })
+    onActivate({ plan: plan.id, summary, people: plan.id === 'empresas' ? n : null, at: Date.now() })
     setDone(true)
   }
 
@@ -58,23 +74,33 @@ export default function SubscribeModal({ planId, onClose, onActivate }) {
             </span>
           </p>
 
+          {plan.monthly && (
+            <fieldset>
+              <legend className="label">Como prefere pagar?</legend>
+              <Choice
+                name="billing"
+                value={billing}
+                onChange={setBilling}
+                options={[
+                  { id: 'mensal', label: 'Mensal', price: `${brl(plan.monthly)} por mês` },
+                  { id: 'anual', label: 'Anual', price: `${brl(plan.yearly)} por ano` },
+                ]}
+              />
+            </fieldset>
+          )}
+
           {plan.id === 'escolas' && (
             <fieldset>
               <legend className="label">Tipo de escola</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'publica', label: 'Pública', price: 'Grátis' },
-                  { id: 'particular', label: 'Particular', price: `${brl(SCHOOL_PRIVATE_YEAR)} por ano` },
-                ].map((o) => (
-                  <label key={o.id} className="cursor-pointer">
-                    <input type="radio" name="school" value={o.id} checked={schoolType === o.id} onChange={() => setSchoolType(o.id)} className="peer sr-only" />
-                    <span className="flex flex-col rounded-xl border border-line p-3 transition peer-checked:border-brand peer-checked:bg-brand-tint peer-focus-visible:ring-4 peer-focus-visible:ring-brand/20">
-                      <span className="font-semibold text-ink">{o.label}</span>
-                      <span className="text-sm text-ink-soft">{o.price}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <Choice
+                name="school"
+                value={schoolType}
+                onChange={setSchoolType}
+                options={[
+                  { id: 'particular', label: 'Particular', price: `${brl(plan.yearlyPrivate)} por ano` },
+                  { id: 'publica', label: 'Pública', price: `${brl(plan.yearlyPublic)} por ano` },
+                ]}
+              />
             </fieldset>
           )}
 
@@ -82,16 +108,28 @@ export default function SubscribeModal({ planId, onClose, onActivate }) {
             <div>
               <label htmlFor="people" className="label">Quantas pessoas vão usar?</label>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setPeople((p) => clamp(p - 5))} className="btn btn-secondary px-3" aria-label="Menos 5 pessoas">
+                <button type="button" onClick={() => setPeople((p) => clamp(Number(p) - 5))} className="btn btn-secondary px-3" aria-label="Menos 5 pessoas">
                   <Minus className="size-5" />
                 </button>
-                <input id="people" type="number" inputMode="numeric" min={MIN_PEOPLE} max={5000} value={people} onChange={(e) => setPeople(e.target.value)} onBlur={(e) => setPeople(clamp(e.target.value))} className="field w-28 text-center text-lg tabular-nums" />
+                <input id="people" type="number" inputMode="numeric" min={min} max={5000} value={people} onChange={(e) => setPeople(e.target.value)} onBlur={(e) => setPeople(clamp(e.target.value))} className="field w-28 text-center text-lg tabular-nums" />
                 <button type="button" onClick={() => setPeople((p) => clamp(Number(p) + 5))} className="btn btn-secondary px-3" aria-label="Mais 5 pessoas">
                   <Plus className="size-5" />
                 </button>
               </div>
-              <p className="hint mt-1.5">Mínimo de {MIN_PEOPLE} pessoas. {brl(PRICE_PER_PERSON)} por pessoa por mês.</p>
+              <p className="hint mt-1.5">Mínimo de {min} pessoas. {brl(plan.perPerson)} por pessoa por mês.</p>
             </div>
+          )}
+
+          {plan.tiers && (
+            <fieldset>
+              <legend className="label">Quantos clientes a empresa tem?</legend>
+              <Choice
+                name="tier"
+                value={tier}
+                onChange={setTier}
+                options={plan.tiers.map((t) => ({ id: t.id, label: t.label, price: t.monthly ? `${brl(t.monthly)} por mês` : 'Sob consulta' }))}
+              />
+            </fieldset>
           )}
 
           <div className="rounded-xl bg-paper p-4">
@@ -101,11 +139,7 @@ export default function SubscribeModal({ planId, onClose, onActivate }) {
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} className="btn btn-secondary">Voltar</button>
-            <button
-              type="button"
-              onClick={activate}
-              className="btn btn-primary"
-            >
+            <button type="button" onClick={activate} className="btn btn-primary">
               <FlaskConical className="size-5" /> Ativar na simulação
             </button>
           </div>

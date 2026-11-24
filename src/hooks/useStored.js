@@ -55,4 +55,8 @@ export const KEYS = {
   plan: 'alerta-golpe:plano-simulado:v1',
   trialUsed: 'alerta-golpe:teste-usado:v1',
   attempts: 'alerta-golpe:tentativas:v1',
+  notifications: 'alerta-golpe:notificacoes:v1',
+  notifyPrefs: 'alerta-golpe:avisos-config:v1',
+  onboarded: 'alerta-golpe:tutorial-visto:v1',
+  reviews: 'alerta-golpe:revisoes:v1',
 }

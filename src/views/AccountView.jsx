@@ -1,16 +1,32 @@
 import { useEffect, useState } from 'react'
-import { LogIn, LogOut, Bookmark, Trash2, Search, Flag, ShieldCheck, Shield, MessageSquareHeart, Smartphone, Layers, Sparkles, Clock } from 'lucide-react'
+import { LogIn, LogOut, Bookmark, Trash2, Search, Flag, ShieldCheck, Shield, MessageSquareHeart, Smartphone, Layers, Sparkles, Clock, CircleHelp, HandHeart } from 'lucide-react'
 import { LIST_LIMIT, TRIAL_DAYS } from '../data/plans'
 import UpgradePrompt from '../components/UpgradePrompt'
+import { reportStage, helpedBy } from '../lib/notifications'
 import StatusBadge from '../components/StatusBadge'
 import { CATEGORY_BY_ID } from '../data/constants'
 import { SCENARIOS, FREE_SCENARIOS } from '../data/scamScenarios'
 import { formatPhone, timeAgo } from '../utils/phone'
 
+const STAGE = {
+  received: { text: 'Recebida', cls: 'bg-paper text-ink-soft' },
+  confirmed: { text: 'Confirmada por outras pessoas', cls: 'bg-warn-tint text-warn' },
+  blocked: { text: 'Número bloqueado', cls: 'bg-safe-tint text-safe' },
+  removed: { text: 'Denúncia apagada', cls: 'bg-paper text-ink-soft line-through decoration-1' },
+  expired: { text: 'Alerta arquivado', cls: 'bg-paper text-ink-soft' },
+}
+
 const OUTCOME = { safe: 'Se protegeu', partial: 'Parou a tempo', scammed: 'Caiu no golpe' }
 const OUTCOME_CLS = { safe: 'text-safe', partial: 'text-warn', scammed: 'text-danger' }
 
 // Turma de exemplo do painel (nomes fictícios, só para mostrar como funciona)
+const SAMPLE_FAMILY = [
+  { name: 'Mãe', done: 4, last: 'safe' },
+  { name: 'Pai', done: 2, last: 'scammed' },
+  { name: 'Vó Lúcia', done: 1, last: 'partial' },
+  { name: 'Júlia', done: 4, last: 'safe' },
+  { name: 'Pedro', done: 0, last: null },
+]
 const SAMPLE_GROUP = [
   { name: 'Ana', done: 4, last: 'safe' },
   { name: 'Bruno', done: 3, last: 'partial' },
@@ -82,10 +98,10 @@ function TrainingReport({ attempts }) {
   )
 }
 
-function GroupPanel() {
+function GroupPanel({ panel }) {
   return (
     <div>
-      <p className="mb-3 rounded-lg bg-warn-tint px-3 py-2 text-[15px] text-warn">Exemplo com nomes fictícios. No plano de verdade, aparecem as pessoas da sua turma ou equipe.</p>
+      <p className="mb-3 rounded-lg bg-warn-tint px-3 py-2 text-[15px] text-warn">Exemplo com nomes fictícios. No plano de verdade, aparecem as pessoas da sua {panel}.</p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[420px] text-left text-[15px]">
           <thead>
@@ -96,7 +112,7 @@ function GroupPanel() {
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {SAMPLE_GROUP.map((p) => (
+            {(panel === 'família' ? SAMPLE_FAMILY : SAMPLE_GROUP).map((p) => (
               <tr key={p.name}>
                 <th scope="row" className="py-2.5 font-normal text-ink">{p.name}</th>
                 <td className="py-2.5 text-ink">{p.done} de {FREE_SCENARIOS.length}</td>
@@ -110,9 +126,9 @@ function GroupPanel() {
   )
 }
 
-export default function AccountView({ user, onLogin, onLogout, watchlist, onRemove, onCheck, loadMyReports, training, attempts, onReport, onFeedback, go, isDemo, planInfo, onEndPlan, onTrial }) {
-  const { plan, planName, isPremium, isTrial, daysLeft, canTrial } = planInfo
-  const upgrade = { canTrial, onTrial, onPlans: () => go('planos') }
+export default function AccountView({ user, onLogin, onLogout, watchlist, onRemove, onCheck, loadMyReports, training, attempts, onReport, onFeedback, go, isDemo, planInfo, onEndPlan, onTrial, notifications, onTutorial }) {
+  const { plan, planName, isPremium, isTrial, daysLeft, canTrial, panel } = planInfo
+  const upgrade = { canTrial, onTrial: () => onTrial(), onPlans: () => go('planos') }
   const [mine, setMine] = useState(null)
 
   useEffect(() => {
@@ -189,7 +205,7 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
             <button type="button" onClick={onEndPlan} className="btn btn-ghost">{isTrial ? 'Encerrar teste' : 'Encerrar simulação'}</button>
           )}
           {canTrial && (
-            <button type="button" onClick={onTrial} className="btn btn-primary">
+            <button type="button" onClick={() => onTrial()} className="btn btn-primary">
               <Sparkles className="size-5" /> Testar grátis
             </button>
           )}
@@ -247,18 +263,33 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
         ) : mine.length === 0 ? (
           <p className="text-ink-soft">Você ainda não denunciou nenhum número.</p>
         ) : (
+          <>
+          <p className="mb-3 flex items-center gap-3 rounded-xl bg-safe-tint p-4 text-ink">
+            <HandHeart className="size-7 shrink-0 text-safe" />
+            <span>
+              Suas denúncias já ajudaram cerca de <b>{mine.reduce((sum, r) => sum + helpedBy(r.phone), 0)} pessoas</b> a não atender um golpe.
+              <span className="block text-sm text-ink-soft">Estimativa da demonstração.</span>
+            </span>
+          </p>
           <ul className="divide-y divide-line">
-            {mine.map((r) => (
+            {mine.map((r) => {
+              const stage = STAGE[reportStage(r.phone, notifications)]
+              return (
               <li key={r.id} className="py-3">
                 <p className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-mono text-ink">{formatPhone(r.phone)}</span>
                   <span className="text-sm text-ink-soft">{timeAgo(r.createdAt)}</span>
                 </p>
+                <p className="mt-1">
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-sm font-semibold ${stage.cls}`}>{stage.text}</span>
+                </p>
                 <p className="text-sm text-ink-soft">{CATEGORY_BY_ID[r.category]?.label}</p>
                 {r.description && <p className="mt-1 text-[15px] text-ink">“{r.description}”</p>}
               </li>
-            ))}
+              )
+            })}
           </ul>
+          </>
         )}
       </Section>
 
@@ -289,18 +320,32 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
         )}
       </Section>
 
-      <Section title="Painel da turma ou equipe" badge="Plano pago" description="Para professores e empresas acompanharem o treino de várias pessoas.">
-        {isPremium ? (
-          <GroupPanel />
+      <Section
+        title={panel ? `Painel da ${panel}` : 'Painel da família, turma ou equipe'}
+        badge={panel ? null : 'Família, Escolas e Empresas'}
+        description={panel ? `Acompanhe o treino de cada pessoa da sua ${panel}.` : 'Para acompanhar o treino de várias pessoas num lugar só.'}
+      >
+        {panel ? (
+          <GroupPanel panel={panel} />
         ) : (
-          <UpgradePrompt title="Acompanhe uma turma ou equipe" text="Veja quem já treinou e quem precisa de ajuda, num painel só." {...upgrade} />
+          <UpgradePrompt
+            title="Proteja mais pessoas"
+            text={isPremium ? 'Seu plano protege só você. O painel faz parte dos planos Família, Escolas e Empresas.' : 'Veja quem já treinou e quem precisa de ajuda, num painel só.'}
+            {...upgrade}
+            onTrial={() => onTrial('familia')}
+          />
         )}
       </Section>
 
-      <Section title="Sua opinião" description="Encontrou um problema ou tem uma ideia? Conte para a gente.">
-        <button type="button" onClick={onFeedback} className="btn btn-secondary">
-          <MessageSquareHeart className="size-5" /> Enviar feedback
-        </button>
+      <Section title="Ajuda e opinião" description="Reveja o tutorial ou conte para a gente o que achou.">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={onTutorial} className="btn btn-secondary">
+            <CircleHelp className="size-5" /> Ver o tutorial
+          </button>
+          <button type="button" onClick={onFeedback} className="btn btn-secondary">
+            <MessageSquareHeart className="size-5" /> Enviar feedback
+          </button>
+        </div>
       </Section>
     </div>
   )

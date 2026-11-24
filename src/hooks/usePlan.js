@@ -42,7 +42,8 @@ export function usePlan({ onTrialEnded } = {}) {
   return useMemo(
     () => ({
       plan,
-      planName: plan ? PLAN_BY_ID[plan.plan].name : 'Gratuito',
+      planName: plan ? PLAN_BY_ID[plan.plan]?.name ?? 'Plus' : 'Gratuito',
+      panel: plan ? PLAN_BY_ID[plan.plan]?.panel ?? null : null,
       isPremium: Boolean(plan),
       isTrial: Boolean(plan?.trial),
       daysLeft,

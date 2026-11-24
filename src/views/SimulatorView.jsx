@@ -97,7 +97,7 @@ export default function SimulatorView({ training, onStart, access }) {
           <UpgradePrompt
             className="mt-4"
             title="Libere os golpes extras"
-            text={canTrial ? 'Teste um plano pago por 7 dias, sem pagar nada e sem cadastro.' : 'Os golpes extras fazem parte dos planos Escolas e Empresas.'}
+            text={canTrial ? 'Teste o plano Plus por 7 dias, sem pagar nada e sem cadastro.' : 'Os golpes extras fazem parte dos planos pagos, a partir do Plus.'}
             canTrial={canTrial}
             onTrial={onTrial}
             onPlans={onPlans}
