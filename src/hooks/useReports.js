@@ -71,5 +71,7 @@ export function useReports() {
     []
   )
 
-  return { mode: backend.mode, recent, stats, feedError, search, addReport, sendFeedback }
+  const loadMyReports = useCallback(() => backend.minhasDenuncias(), [])
+
+  return { mode: backend.mode, demoCode: backend.auth.demoCode, recent, stats, feedError, search, addReport, sendFeedback, loadMyReports }
 }

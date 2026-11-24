@@ -103,6 +103,32 @@ supabase/schema.sql          # tabela, regras de segurança e funções do banco
 - Cada pessoa pode fazer até **10 denúncias por dia** e só **1 por número a cada 30 dias**.
 - Feedbacks: até **5 por pessoa por dia**, e ninguém além de você consegue lê-los.
 
+## Visual e navegação
+
+Tema claro e calmo, com a fonte Atkinson Hyperlegible (feita para ser fácil de ler por
+qualquer pessoa). Navegação em abas: **Consultar**, **Simular golpe**, **Analisar mensagem**,
+**Dicas** e **Minha área**. No celular as abas ficam numa barra fixa embaixo. O botão
+**Texto maior** aumenta tudo e fica salvo no aparelho.
+
+## Novas funções
+
+- **Analisar mensagem:** cole um SMS ou WhatsApp e veja os sinais de golpe marcados no texto.
+  A análise roda no aparelho (`src/lib/analyzeMessage.js`); nada é enviado.
+- **Minha lista:** salve números para acompanhar o status (fica no aparelho).
+- **Pesquisas recentes** embaixo do campo de busca.
+- **Avisar família e amigos:** compartilha o alerta do número (WhatsApp ou menu do celular).
+- **Conquistas do simulador:** um escudo para cada golpe em que a pessoa se protegeu.
+- **Login opcional com o número:** código por SMS. Sem login tudo funciona.
+  - Modo demonstração: nenhum SMS é enviado e o código é `123456`.
+  - Online: Supabase → Authentication → Sign In / Providers → **Phone**, com um provedor
+    de SMS (Twilio, MessageBird, Vonage ou Textlocal). A função `minhas_denuncias` do
+    `supabase/schema.sql` mostra as denúncias da pessoa em qualquer aparelho.
+
+## Logo
+
+`public/favicon.svg` é a marca (escudo + telefone tocando). As versões completas ficam
+fora do repositório, entregues à parte em SVG e PNG.
+
 ## Simulador de golpe
 
 Seção "Treine antes que aconteça": a pessoa escolhe um golpe, recebe uma ligação falsa na

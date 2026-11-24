@@ -18,9 +18,9 @@ export const CATEGORIES = [
 export const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 
 export const SEVERITIES = [
-  { id: 'leve', label: 'Leve', hint: 'Incômodo, insistente', weight: 1, dot: 'bg-sky-400', ring: 'peer-checked:border-sky-400 peer-checked:bg-sky-400/10' },
-  { id: 'moderado', label: 'Moderado', hint: 'Pediu dados ou dinheiro', weight: 2, dot: 'bg-amber-400', ring: 'peer-checked:border-amber-400 peer-checked:bg-amber-400/10' },
-  { id: 'alto', label: 'Alto', hint: 'Golpe, ameaça ou prejuízo', weight: 4, dot: 'bg-red-500', ring: 'peer-checked:border-red-500 peer-checked:bg-red-500/10' },
+  { id: 'leve', label: 'Leve', hint: 'Incômodo, insistente', weight: 1, dot: 'bg-sky-500', ring: 'peer-checked:border-brand peer-checked:bg-brand-tint' },
+  { id: 'moderado', label: 'Moderado', hint: 'Pediu dados ou dinheiro', weight: 2, dot: 'bg-amber-500', ring: 'peer-checked:border-warn peer-checked:bg-warn-tint' },
+  { id: 'alto', label: 'Alto', hint: 'Golpe, ameaça ou prejuízo', weight: 4, dot: 'bg-red-600', ring: 'peer-checked:border-danger peer-checked:bg-danger-tint' },
 ]
 
 export const SEVERITY_BY_ID = Object.fromEntries(SEVERITIES.map((s) => [s.id, s]))
@@ -30,28 +30,34 @@ export const STATUS = {
     label: 'Perigoso',
     sublabel: 'Golpe confirmado por várias pessoas',
     icon: ShieldX,
-    text: 'text-red-400',
-    badge: 'bg-red-500/15 text-red-300 ring-red-500/40',
-    glow: 'from-red-500/25',
-    bar: 'bg-red-500',
+    text: 'text-danger',
+    tint: 'bg-danger-tint',
+    border: 'border-danger/25',
+    badge: 'bg-danger-tint text-danger ring-danger/25',
+    bar: 'bg-danger',
+    advice: 'Não atenda e não retorne. Se já falou com essa pessoa, não passe códigos, senhas nem faça Pix.',
   },
   suspeito: {
     label: 'Suspeito',
-    sublabel: 'Muitas reclamações registradas',
+    sublabel: 'Há denúncias registradas',
     icon: ShieldAlert,
-    text: 'text-amber-300',
-    badge: 'bg-amber-400/15 text-amber-200 ring-amber-400/40',
-    glow: 'from-amber-400/20',
-    bar: 'bg-amber-400',
+    text: 'text-warn',
+    tint: 'bg-warn-tint',
+    border: 'border-warn/25',
+    badge: 'bg-warn-tint text-warn ring-warn/25',
+    bar: 'bg-amber-500',
+    advice: 'Atenda com cuidado. Na dúvida, desligue e ligue você mesmo para o número oficial da empresa.',
   },
   seguro: {
-    label: 'Seguro',
-    sublabel: 'Sem registros na nossa base',
+    label: 'Sem denúncias',
+    sublabel: 'Nenhum registro na nossa base',
     icon: ShieldCheck,
-    text: 'text-emerald-400',
-    badge: 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/40',
-    glow: 'from-emerald-500/20',
-    bar: 'bg-emerald-500',
+    text: 'text-safe',
+    tint: 'bg-safe-tint',
+    border: 'border-safe/25',
+    badge: 'bg-safe-tint text-safe ring-safe/25',
+    bar: 'bg-safe',
+    advice: 'Isso não garante que é confiável: golpistas trocam de número o tempo todo. Nunca passe códigos ou senhas.',
   },
 }
 

@@ -1,164 +1,204 @@
-import { useCallback, useRef, useState } from 'react'
-import { TriangleAlert, ShieldCheck, MessageSquareHeart } from 'lucide-react'
-import Header from './components/Header'
-import SearchPanel from './components/SearchPanel'
-import ResultCard, { ResultSkeleton } from './components/ResultCard'
-import RecentFeed from './components/RecentFeed'
-import SafetyTips from './components/SafetyTips'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Header, { BottomNav } from './components/Header'
 import ReportModal from './components/ReportModal'
 import FeedbackModal from './components/FeedbackModal'
-import ScamSimulator from './components/ScamSimulator'
-import SimulatorSpotlight from './components/SimulatorSpotlight'
-import IncomingCallInvite from './components/IncomingCallInvite'
+import LoginModal from './components/LoginModal'
 import CallSimulator from './components/CallSimulator'
-import { SCENARIOS } from './data/scamScenarios'
-import StatsStrip from './components/StatsStrip'
 import Toast from './components/Toast'
+import { LogoMark } from './components/Logo'
+import HomeView from './views/HomeView'
+import SimulatorView from './views/SimulatorView'
+import MessageView from './views/MessageView'
+import TipsView from './views/TipsView'
+import AccountView from './views/AccountView'
 import { useReports } from './hooks/useReports'
+import { useStored, KEYS } from './hooks/useStored'
+import { useView } from './hooks/useView'
+import { AuthProvider, useAuth } from './hooks/useAuth'
+import { SCENARIOS } from './data/scamScenarios'
+import { STATUS } from './data/constants'
 import { formatAsTyped, formatPhone } from './utils/phone'
 
-export default function App() {
-  const { mode, recent, stats, feedError, search, addReport, sendFeedback } = useReports()
+const RANK = { scammed: 1, partial: 2, safe: 3 }
+
+function shareText(result) {
+  const status = STATUS[result.status].label
+  return `Alerta Golpe: o número ${formatPhone(result.phone)} tem ${result.total} ${result.total === 1 ? 'denúncia' : 'denúncias'} e está marcado como "${status}". Consulte antes de atender:`
+}
+
+function Site() {
+  const { mode, demoCode, recent, stats, feedError, search, addReport, sendFeedback, loadMyReports } = useReports()
   const isDemo = mode === 'demo'
+  const { user, signOut } = useAuth()
+  const [view, go] = useView()
+
+  // Consulta
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [modal, setModal] = useState({ open: false, phone: '' })
-  const [toast, setToast] = useState('')
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [simScenario, setSimScenario] = useState(null)
   const resultRef = useRef(null)
+
+  // Dados salvos neste aparelho
+  const [recentSearches, setRecentSearches] = useStored(KEYS.recent, [])
+  const [watchlist, setWatchlist] = useStored(KEYS.watchlist, [])
+  const [training, setTraining] = useStored(KEYS.training, {})
+  const [textSize, setTextSize] = useStored(KEYS.textSize, 'normal')
+
+  // Janelas
+  const [reportModal, setReportModal] = useState({ open: false, phone: '' })
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [simScenario, setSimScenario] = useState(null)
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    document.documentElement.dataset.text = textSize
+  }, [textSize])
 
   const runSearch = useCallback(
     async (term) => {
+      go('consultar')
       setQuery(formatAsTyped(term))
       setLoading(true)
       setError('')
       setResult(null)
-      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
       try {
-        setResult(await search(term))
+        const res = await search(term)
+        setResult(res)
+        const key = res.type === 'ddd' ? res.ddd : res.phone
+        setRecentSearches((prev) => [key, ...prev.filter((v) => v !== key)].slice(0, 6))
+        if (res.type === 'phone') {
+          // mantém o status da minha lista atualizado
+          setWatchlist((prev) => prev.map((w) => (w.phone === res.phone ? { ...w, status: res.status } : w)))
+        }
       } catch (err) {
         setError(err.message)
       } finally {
         setLoading(false)
       }
     },
-    [search]
+    [go, search, setRecentSearches, setWatchlist]
   )
 
-  const openReport = useCallback((phone = '') => setModal({ open: true, phone }), [])
-  const closeReport = useCallback(() => setModal({ open: false, phone: '' }), [])
+  const saved = result?.type === 'phone' && watchlist.some((w) => w.phone === result.phone)
+  const toggleSave = () => {
+    if (!result) return
+    if (saved) {
+      setWatchlist((prev) => prev.filter((w) => w.phone !== result.phone))
+      setToast('Número removido da sua lista.')
+    } else {
+      setWatchlist((prev) => [{ phone: result.phone, status: result.status, savedAt: Date.now() }, ...prev])
+      setToast('Número salvo na sua lista. Veja em Minha área.')
+    }
+  }
+
+  const share = async () => {
+    const text = shareText(result)
+    const url = window.location.href.split('#')[0]
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Alerta Golpe', text, url })
+        return
+      }
+    } catch {
+      return // a pessoa cancelou
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener')
+  }
+
+  const openReport = useCallback((phone = '') => setReportModal({ open: true, phone }), [])
+  const closeReport = useCallback(() => setReportModal({ open: false, phone: '' }), [])
   const closeToast = useCallback(() => setToast(''), [])
-  const openFeedback = useCallback(() => setFeedbackOpen(true), [])
-  const closeFeedback = useCallback(() => setFeedbackOpen(false), [])
-
-  // Simulador: sem id, começa pela falsa central do banco (o golpe mais comum).
-  const openSimulator = useCallback(
-    (id = 'falso-banco') => setSimScenario(SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[0]),
-    []
-  )
-  const closeSimulator = useCallback(() => setSimScenario(null), [])
-  const pickAnotherScam = useCallback(() => {
-    setSimScenario(null)
-    requestAnimationFrame(() => document.getElementById('simulador')?.scrollIntoView({ behavior: 'smooth' }))
-  }, [])
 
   const submitReport = async (form) => {
     const report = await addReport(form)
-    setToast(`Denúncia de ${formatPhone(report.phone)} enviada. Obrigado por proteger a comunidade!`)
+    setToast(`Denúncia de ${formatPhone(report.phone)} enviada. Obrigado!`)
     return report
   }
 
+  const finishTraining = useCallback(
+    (id, outcome) => setTraining((prev) => (RANK[outcome] >= (RANK[prev[id]] ?? 0) ? { ...prev, [id]: outcome } : prev)),
+    [setTraining]
+  )
+
+  const openScenario = (id) => setSimScenario(SCENARIOS.find((s) => s.id === id))
+
   return (
-    <div className="min-h-dvh">
-      <Header onReport={openReport} onFeedback={openFeedback} onSimulate={openSimulator} />
+    <div className="flex min-h-dvh flex-col">
+      <Header
+        view={view}
+        go={go}
+        user={user}
+        onReport={openReport}
+        onLogin={() => setLoginOpen(true)}
+        bigText={textSize === 'grande'}
+        onToggleText={() => setTextSize((t) => (t === 'grande' ? 'normal' : 'grande'))}
+      />
 
-      <main className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-        {/* Hero + busca */}
-        <section id="consulta" className="scroll-mt-24 pt-12 pb-8 sm:pt-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1 text-xs font-medium text-cyan-200">
-              <ShieldCheck className="size-3.5" />
-              Proteção colaborativa contra golpes
-            </span>
-            <h1 className="mt-5 font-display text-4xl font-bold tracking-tight text-balance text-white sm:text-5xl">
-              Quem ligou pra você?
-            </h1>
-            <p className="mt-4 text-base text-pretty text-slate-400 sm:text-lg">
-              Consulte qualquer número antes de atender ou retornar. Veja denúncias da comunidade e saiba se é golpe.
-            </p>
-          </div>
-
-          <div className="mx-auto mt-8 max-w-2xl">
-            <SearchPanel value={query} onChange={setQuery} onSearch={runSearch} loading={loading} showExamples={isDemo} />
-          </div>
-
-          <div ref={resultRef} className="mx-auto mt-8 max-w-4xl scroll-mt-24">
-            {loading && <ResultSkeleton />}
-            {error && (
-              <div className="animate-rise flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-200">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                {error}
-              </div>
-            )}
-            <ResultCard result={result} onReport={openReport} />
-          </div>
-
-          <div className="mx-auto mt-10 max-w-4xl">
-            <SimulatorSpotlight onStart={openSimulator} />
-          </div>
-
-          <div className="mx-auto mt-8 max-w-2xl">
-            <StatsStrip stats={stats} isDemo={isDemo} />
-          </div>
-        </section>
-
-        <ScamSimulator onStart={openSimulator} />
-
-        {/* Feed + dicas */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          <RecentFeed reports={recent} error={feedError} onReport={openReport} />
-          <SafetyTips />
-        </div>
-
-        {/* Feedback */}
-        <section
-          id="feedback"
-          className="mt-6 flex scroll-mt-24 flex-col items-start gap-4 rounded-3xl border border-white/10 bg-ink-900/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
-        >
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
-              <MessageSquareHeart className="size-5 text-cyan-300" />
-            </span>
-            <div>
-              <h2 className="font-display text-lg font-semibold text-white">O que você achou do site?</h2>
-              <p className="mt-0.5 text-sm text-slate-400">Mande uma sugestão, avise de um problema ou deixe um elogio. Leva menos de 1 minuto.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={openFeedback}
-            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/20 sm:w-auto"
-          >
-            <MessageSquareHeart className="size-4" />
-            Enviar feedback
-          </button>
-        </section>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-8 pb-32 sm:pt-12 md:pb-20">
+        {view === 'consultar' && (
+          <HomeView
+            isDemo={isDemo}
+            go={go}
+            onReport={openReport}
+            search={{
+              query,
+              setQuery,
+              run: runSearch,
+              loading,
+              error,
+              resultRef,
+              recent: recentSearches,
+              clearRecent: () => setRecentSearches([]),
+            }}
+            result={{ result, saved, onToggleSave: toggleSave, onShare: share }}
+            feed={{ recent, stats, error: feedError }}
+          />
+        )}
+        {view === 'simulador' && <SimulatorView training={training} onStart={openScenario} />}
+        {view === 'mensagem' && <MessageView />}
+        {view === 'dicas' && <TipsView onReport={openReport} />}
+        {view === 'minha-area' && (
+          <AccountView
+            user={user}
+            isDemo={isDemo}
+            onLogin={() => setLoginOpen(true)}
+            onLogout={async () => {
+              await signOut()
+              setToast('Você saiu da sua conta.')
+            }}
+            watchlist={watchlist}
+            onRemove={(phone) => setWatchlist((prev) => prev.filter((w) => w.phone !== phone))}
+            onCheck={(phone) => runSearch(phone)}
+            loadMyReports={loadMyReports}
+            training={training}
+            onReport={openReport}
+            onFeedback={() => setFeedbackOpen(true)}
+            go={go}
+          />
+        )}
       </main>
 
-      <footer className="border-t border-white/5 py-8 text-center text-xs text-slate-500">
-        <p>{isDemo ? 'AlertaGolpe · versão de demonstração com dados fictícios.' : 'AlertaGolpe · denúncias enviadas pela comunidade.'}</p>
-        <p className="mt-1">As denúncias são relatos de usuários e não constituem acusação formal.</p>
-        <button type="button" onClick={openFeedback} className="mt-3 font-semibold text-cyan-300 hover:text-cyan-200">
-          Enviar feedback
-        </button>
+      <footer className="hidden border-t border-line bg-white md:block">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-start justify-between gap-6 px-4 py-8 text-[15px] text-ink-soft">
+          <div className="flex max-w-md gap-3">
+            <LogoMark className="size-8 shrink-0" />
+            <p>
+              O Alerta Golpe nunca liga para você e nunca pede senhas, códigos ou dados bancários. As denúncias são relatos de usuários e não são acusação formal.
+              {isDemo && ' Versão de demonstração: os números da base são fictícios.'}
+            </p>
+          </div>
+          <button type="button" onClick={() => setFeedbackOpen(true)} className="btn btn-secondary">Enviar feedback</button>
+        </div>
       </footer>
 
+      <BottomNav view={view} />
+
       <ReportModal
-        open={modal.open}
-        initialPhone={modal.phone}
+        open={reportModal.open}
+        initialPhone={reportModal.phone}
         onClose={closeReport}
         onSubmit={submitReport}
         onViewNumber={(phone) => {
@@ -166,22 +206,36 @@ export default function App() {
           runSearch(phone)
         }}
       />
-      <FeedbackModal
-        open={feedbackOpen}
-        onClose={closeFeedback}
-        isDemo={isDemo}
-        onSubmit={sendFeedback}
+      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} isDemo={isDemo} onSubmit={sendFeedback} />
+      <LoginModal
+        open={loginOpen}
+        demoCode={demoCode}
+        onClose={(ok) => {
+          setLoginOpen(false)
+          if (ok) setToast('Pronto, você entrou com seu número.')
+        }}
       />
       {simScenario && (
         <CallSimulator
           key={simScenario.id}
           scenario={simScenario}
-          onClose={closeSimulator}
-          onPickAnother={pickAnotherScam}
+          onClose={() => setSimScenario(null)}
+          onPickAnother={() => {
+            setSimScenario(null)
+            go('simulador')
+          }}
+          onFinish={finishTraining}
         />
       )}
-      <IncomingCallInvite onAnswer={() => openSimulator()} blocked={Boolean(simScenario) || modal.open || feedbackOpen} />
       <Toast message={toast} onClose={closeToast} />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Site />
+    </AuthProvider>
   )
 }

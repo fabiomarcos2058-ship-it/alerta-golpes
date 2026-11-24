@@ -6,6 +6,8 @@ import { globalStats, statsForDDD, statsForNumber } from './stats'
 import { maskPhone } from '../utils/phone'
 
 const STORAGE_KEY = 'alerta-golpe:denuncias:v1'
+const ACCOUNT_KEY = 'alerta-golpe:conta-demo:v1'
+const DEMO_CODE = '123456'
 const wait = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms))
 
 function loadStored() {
@@ -79,6 +81,51 @@ export const demoBackend = {
     }
     notify()
     return { phone, createdAt: report.createdAt }
+  },
+
+  /** Denúncias feitas neste navegador. */
+  async minhasDenuncias() {
+    return [...mine].sort((a, b) => b.createdAt - a.createdAt)
+  },
+
+  /**
+   * Login de demonstração: nenhum SMS é enviado e o código é sempre 123456.
+   * No modo online (Supabase) o código chega de verdade por SMS.
+   */
+  auth: {
+    demoCode: DEMO_CODE,
+    async current() {
+      try {
+        return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null')
+      } catch {
+        return null
+      }
+    },
+    onChange() {
+      return () => {}
+    },
+    async sendCode() {
+      await wait(700)
+      return { demo: true }
+    },
+    async verifyCode(phone, code) {
+      await wait(700)
+      if (code !== DEMO_CODE) throw new Error('Código incorreto. Confira os 6 números e tente de novo.')
+      const user = { phone }
+      try {
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(user))
+      } catch {
+        /* navegação privada */
+      }
+      return user
+    },
+    async signOut() {
+      try {
+        localStorage.removeItem(ACCOUNT_KEY)
+      } catch {
+        /* navegação privada */
+      }
+    },
   },
 
   /** No modo demonstração o feedback fica só neste navegador. */

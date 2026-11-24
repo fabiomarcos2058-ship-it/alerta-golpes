@@ -1,29 +1,16 @@
-import { Flag, Clock, MapPin, MessageSquare, TriangleAlert, Info, Hash, Megaphone } from 'lucide-react'
+import { Flag, MessageSquare, Bookmark, BookmarkCheck, Share2, MapPin, Megaphone } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import { CATEGORY_BY_ID, SEVERITY_BY_ID, STATUS } from '../data/constants'
 import { formatDateTime, formatPhone, timeAgo } from '../utils/phone'
 
-function Panel({ status, children }) {
+function Fact({ label, value, sub }) {
   return (
-    <section
-      aria-live="polite"
-      className="animate-rise relative overflow-hidden rounded-3xl border border-white/10 bg-ink-900/90 shadow-2xl shadow-black/40"
-    >
-      <div className={`pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b ${STATUS[status]?.glow ?? 'from-cyan-400/15'} to-transparent`} />
-      <div className="relative p-5 sm:p-7">{children}</div>
-    </section>
-  )
-}
-
-function Stat({ label, value, sub, icon: Icon }) {
-  return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-        {Icon && <Icon className="size-3.5" />}
-        {label}
-      </div>
-      <div className="mt-1 font-display text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
+    <div className="flex items-baseline justify-between gap-4 border-b border-line py-3 last:border-b-0">
+      <dt className="text-ink-soft">{label}</dt>
+      <dd className="text-right">
+        <span className="font-semibold text-ink">{value}</span>
+        {sub && <span className="block text-sm text-ink-soft">{sub}</span>}
+      </dd>
     </div>
   )
 }
@@ -32,23 +19,21 @@ function CategoryBars({ categories, barClass }) {
   if (!categories.length) return null
   return (
     <div>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Golpes mais associados</h3>
+      <h3 className="mb-3 font-semibold text-ink">Golpes mais ligados a este número</h3>
       <ul className="space-y-3">
         {categories.map((c) => {
           const cat = CATEGORY_BY_ID[c.id]
           const Icon = cat.icon
           return (
             <li key={c.id}>
-              <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
-                <span className="flex items-center gap-2 text-slate-200">
-                  <Icon className="size-4 text-slate-400" />
+              <div className="mb-1 flex items-center justify-between gap-3 text-[15px]">
+                <span className="flex items-center gap-2 text-ink">
+                  <Icon className="size-4 text-ink-soft" />
                   {cat.label}
                 </span>
-                <span className="font-mono text-xs text-slate-400">
-                  {c.count} · {c.pct}%
-                </span>
+                <span className="text-sm text-ink-soft tabular-nums">{c.pct}%</span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+              <div className="h-2 overflow-hidden rounded-full bg-paper ring-1 ring-line">
                 <div className={`h-full rounded-full ${barClass}`} style={{ width: `${Math.max(c.pct, 4)}%` }} />
               </div>
             </li>
@@ -59,174 +44,143 @@ function CategoryBars({ categories, barClass }) {
   )
 }
 
-function PhoneResult({ result, onReport }) {
+function PhoneResult({ result, onReport, saved, onToggleSave, onShare }) {
   const meta = STATUS[result.status]
-  const StatusIcon = meta.icon
+  const Icon = meta.icon
   const { severity } = result
 
   return (
-    <Panel status={result.status}>
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div className={`grid size-14 shrink-0 place-items-center rounded-2xl bg-ink-950/60 ring-1 ring-white/10 ${meta.text}`}>
-            <StatusIcon className="size-7" />
-          </div>
-          <div>
-            <StatusBadge status={result.status} size="lg" />
-            <p className="mt-2 font-mono text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              {formatPhone(result.phone)}
-            </p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
-              <MapPin className="size-3.5 shrink-0" />
+    <article className={`animate-rise overflow-hidden rounded-2xl border bg-white ${meta.border}`} aria-live="polite">
+      {/* Faixa de status: a primeira coisa que a pessoa lê */}
+      <div className={`${meta.tint} px-5 py-5 sm:px-6`}>
+        <div className="flex items-start gap-4">
+          <Icon className={`mt-1 size-10 shrink-0 ${meta.text}`} strokeWidth={2.2} />
+          <div className="min-w-0">
+            <p className={`text-[1.75rem] leading-tight font-extrabold ${meta.text}`}>{meta.label}</p>
+            <p className="mt-0.5 font-mono text-xl text-ink">{formatPhone(result.phone)}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-[15px] text-ink-soft">
+              <MapPin className="size-4 shrink-0" />
               {result.telemarketingPrefix
-                ? 'Prefixo 0303'
-                : `DDD ${result.phone.slice(0, 2)}${result.uf ? ` · ${result.uf}` : ''}`}{' '}
-              — {result.sublabel ?? meta.sublabel}
+                ? 'Prefixo 0303, de telemarketing'
+                : `DDD ${result.phone.slice(0, 2)}${result.uf ? `, ${result.uf}` : ''}`}
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => onReport(result.phone)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
-        >
-          <Flag className="size-4" />
-          Denunciar este número
-        </button>
+        <p className="mt-4 text-[17px] leading-relaxed text-ink">{meta.advice}</p>
       </div>
 
-      {result.telemarketingPrefix && (
-        <div className="mt-6 flex gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-50/90">
-          <Megaphone className="mt-0.5 size-4 shrink-0 text-amber-300" />
-          <p>
-            Números que começam com 0303 são reservados pela Anatel para telemarketing. Desde 2025 o uso não é
-            mais obrigatório, então telemarketing também pode ligar de números comuns.
+      <div className="px-5 py-5 sm:px-6">
+        {result.telemarketingPrefix && (
+          <p className="mb-5 flex gap-3 rounded-xl bg-warn-tint p-4 text-[15px] text-ink">
+            <Megaphone className="mt-0.5 size-5 shrink-0 text-warn" />
+            Números que começam com 0303 são reservados pela Anatel para telemarketing. Desde 2025 o uso não é obrigatório, então telemarketing também pode ligar de números comuns.
           </p>
-        </div>
-      )}
+        )}
 
-      {result.total === 0 && !result.telemarketingPrefix ? (
-        <div className="mt-6 flex gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-100/90">
-          <Info className="mt-0.5 size-4 shrink-0 text-emerald-400" />
-          <p>
-            Nenhuma denúncia para este número até agora. Isso não garante que ele seja confiável:
-            golpistas trocam de número com frequência. Na dúvida, não passe dados nem códigos.
-          </p>
-        </div>
-      ) : result.total === 0 ? null : (
-        <>
-          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat
-              icon={Hash}
-              label="Total de denúncias"
-              value={result.total}
-              sub={`de ${result.reporters} ${result.reporters === 1 ? 'pessoa' : 'pessoas diferentes'}`}
-            />
-            <Stat icon={Clock} label="Última denúncia" value={timeAgo(result.lastAt)} sub={formatDateTime(result.lastAt)} />
-            <Stat
-              icon={TriangleAlert}
-              label="Gravidade alta"
-              value={`${Math.round((severity.alto / result.total) * 100)}%`}
-              sub={`${severity.alto} de ${result.total} relatos`}
-            />
-            <Stat icon={Clock} label="Primeiro registro" value={timeAgo(result.firstAt)} sub={formatDateTime(result.firstAt)} />
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {result.total > 0 && (
+          <div className="grid gap-8 md:grid-cols-2">
+            <dl>
+              <Fact label="Denúncias" value={result.total} sub={`de ${result.reporters} ${result.reporters === 1 ? 'pessoa' : 'pessoas diferentes'}`} />
+              <Fact label="Última denúncia" value={timeAgo(result.lastAt)} sub={formatDateTime(result.lastAt)} />
+              <Fact label="Marcadas como gravidade alta" value={`${Math.round((severity.alto / result.total) * 100)}%`} />
+              <Fact label="Primeiro registro" value={timeAgo(result.firstAt)} />
+            </dl>
             <CategoryBars categories={result.categories} barClass={meta.bar} />
-
-            <div>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Relatos recentes</h3>
-              <ul className="space-y-2.5">
-                {result.recent.map((r) => (
-                  <li key={r.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
-                      <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                        <span className={`size-1.5 rounded-full ${SEVERITY_BY_ID[r.severity].dot}`} />
-                        {CATEGORY_BY_ID[r.category].label}
-                      </span>
-                      <span className="text-slate-500">{timeAgo(r.createdAt)}</span>
-                    </div>
-                    <p className="flex gap-2 text-sm leading-relaxed text-slate-400">
-                      <MessageSquare className="mt-1 size-3.5 shrink-0 text-slate-600" />
-                      {r.description}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
-        </>
-      )}
-    </Panel>
+        )}
+
+        {result.recent?.length > 0 && (
+          <div className="mt-8">
+            <h3 className="mb-3 font-semibold text-ink">O que as pessoas contaram</h3>
+            <ul className="divide-y divide-line">
+              {result.recent.map((r) => (
+                <li key={r.id} className="flex gap-3 py-3">
+                  <MessageSquare className="mt-1 size-4 shrink-0 text-ink-soft" />
+                  <div>
+                    <p className="text-[15px] leading-relaxed text-ink">“{r.description}”</p>
+                    <p className="mt-1 text-sm text-ink-soft">
+                      {CATEGORY_BY_ID[r.category].label}, gravidade {SEVERITY_BY_ID[r.severity].label.toLowerCase()}, {timeAgo(r.createdAt)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap gap-2 border-t border-line pt-5">
+          <button type="button" onClick={onToggleSave} aria-pressed={saved} className={`btn ${saved ? 'btn-secondary text-brand' : 'btn-secondary'}`}>
+            {saved ? <BookmarkCheck className="size-5" /> : <Bookmark className="size-5" />}
+            {saved ? 'Salvo na minha lista' : 'Salvar na minha lista'}
+          </button>
+          {result.total > 0 && (
+            <button type="button" onClick={onShare} className="btn btn-secondary">
+              <Share2 className="size-5" /> Avisar família e amigos
+            </button>
+          )}
+          <button type="button" onClick={() => onReport(result.phone)} className="btn btn-secondary">
+            <Flag className="size-5 text-danger" /> Denunciar este número
+          </button>
+        </div>
+      </div>
+    </article>
   )
 }
 
 function DDDResult({ result }) {
   return (
-    <Panel status={result.dangerousCount > 0 ? 'perigoso' : 'seguro'}>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Panorama regional</p>
-          <h2 className="mt-1 font-display text-3xl font-bold text-white">
-            DDD {result.ddd} <span className="text-slate-500">· {result.uf}</span>
-          </h2>
-        </div>
-        {result.lastAt && <p className="text-sm text-slate-400">Última denúncia {timeAgo(result.lastAt)}</p>}
-      </div>
+    <article className="animate-rise rounded-2xl border border-line bg-white p-5 sm:p-6" aria-live="polite">
+      <p className="text-ink-soft">Panorama da região</p>
+      <h2 className="mt-1 text-[1.75rem] leading-tight font-extrabold text-ink">
+        DDD {result.ddd}, {result.uf}
+      </h2>
+      <p className="mt-2 text-[17px] text-ink">
+        {result.total > 0
+          ? `${result.total} denúncias de ${result.numbersCount} números. ${result.dangerousCount} ${result.dangerousCount === 1 ? 'está marcado' : 'estão marcados'} como perigoso.`
+          : 'Ainda não há denúncias registradas neste DDD.'}
+      </p>
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
-        <Stat label="Denúncias" value={result.total} />
-        <Stat label="Números" value={result.numbersCount} />
-        <Stat label="Perigosos" value={result.dangerousCount} />
-      </div>
-
-      {result.total > 0 ? (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <CategoryBars categories={result.categories} barClass="bg-cyan-400" />
+      {result.total > 0 && (
+        <div className="mt-6 grid gap-8 md:grid-cols-2">
+          <CategoryBars categories={result.categories} barClass="bg-brand" />
           <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Mais denunciados</h3>
-            <ul className="divide-y divide-white/5 rounded-2xl border border-white/5 bg-white/[0.02]">
+            <h3 className="mb-3 font-semibold text-ink">Números mais denunciados</h3>
+            <ul className="divide-y divide-line rounded-xl border border-line">
               {result.topNumbers.map((n) => (
                 <li key={n.masked} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="font-mono text-sm text-slate-200">{n.masked}</span>
+                  <span className="font-mono text-ink">{n.masked}</span>
                   <span className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-slate-500">{n.total}×</span>
+                    <span className="text-sm text-ink-soft tabular-nums">{n.total} denúncias</span>
                     <StatusBadge status={n.status} />
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-slate-500">Digite o número completo para ver os detalhes.</p>
+            <p className="mt-2 text-sm text-ink-soft">Digite o número completo para ver os detalhes.</p>
           </div>
         </div>
-      ) : (
-        <p className="mt-6 text-sm text-slate-400">Ainda não há denúncias registradas neste DDD.</p>
       )}
-    </Panel>
+    </article>
   )
 }
 
 export function ResultSkeleton() {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-ink-900/80 p-7" aria-busy="true">
-      <div className="absolute inset-y-0 left-0 w-1/3 animate-scan bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent" />
+    <div className="relative overflow-hidden rounded-2xl border border-line bg-white p-6" aria-busy="true">
+      <div className="absolute inset-y-0 left-0 w-1/3 animate-scan bg-gradient-to-r from-transparent via-brand-tint to-transparent" />
       <div className="flex items-center gap-4">
-        <div className="size-14 rounded-2xl bg-white/5" />
+        <div className="size-10 rounded-full bg-paper" />
         <div className="space-y-2">
-          <div className="h-5 w-28 rounded-full bg-white/5" />
-          <div className="h-7 w-56 rounded-lg bg-white/5" />
+          <div className="h-6 w-40 rounded bg-paper" />
+          <div className="h-5 w-56 rounded bg-paper" />
         </div>
       </div>
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl bg-white/5" />)}
-      </div>
-      <p className="mt-5 font-mono text-xs text-cyan-300/70">Consultando base de denúncias…</p>
+      <p className="mt-5 text-ink-soft">Procurando denúncias deste número…</p>
     </div>
   )
 }
 
-export default function ResultCard({ result, onReport }) {
+export default function ResultCard({ result, ...props }) {
   if (!result) return null
-  return result.type === 'ddd' ? <DDDResult result={result} /> : <PhoneResult result={result} onReport={onReport} />
+  return result.type === 'ddd' ? <DDDResult result={result} /> : <PhoneResult result={result} {...props} />
 }

@@ -201,7 +201,7 @@ function Debrief({ scenario, ending, picks, tactics, seconds, onRetry, onReplay,
   )
 }
 
-export default function CallSimulator({ scenario, onClose, onPickAnother }) {
+export default function CallSimulator({ scenario, onClose, onPickAnother, onFinish }) {
   const [phase, setPhase] = useState('ringing') // ringing | talking | ended
   const [transcript, setTranscript] = useState([])
   const [choices, setChoices] = useState(null)
@@ -223,6 +223,8 @@ export default function CallSimulator({ scenario, onClose, onPickAnother }) {
   const scrollRef = useRef(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const onFinishRef = useRef(onFinish)
+  onFinishRef.current = onFinish
   soundRef.current = soundOn
 
   const push = (item) => {
@@ -290,8 +292,10 @@ export default function CallSimulator({ scenario, onClose, onPickAnother }) {
       setChoices(null)
       setSpeaking(false)
       setOnHold(false)
-      setEnding({ id: endId, ...(scenario.endings[endId] ?? COMMON_ENDINGS[endId]) })
+      const end = scenario.endings[endId] ?? COMMON_ENDINGS[endId]
+      setEnding({ id: endId, ...end })
       setPhase('ended')
+      onFinishRef.current?.(scenario.id, end.outcome)
     },
     [scenario, stop]
   )

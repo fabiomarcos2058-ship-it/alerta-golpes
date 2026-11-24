@@ -28,8 +28,49 @@ async function ensureSession() {
   }
 }
 
+/** Usuário logado com número (contas anônimas não contam como login). */
+function toUser(u) {
+  if (!u || u.is_anonymous || !u.phone) return null
+  const digits = String(u.phone).replace(/\D/g, '')
+  return { phone: digits.startsWith('55') ? digits.slice(2) : digits }
+}
+
 export const supabaseBackend = {
   mode: 'online',
+
+  async minhasDenuncias() {
+    const rows = await rpc('minhas_denuncias')
+    return rows.map((r) => ({ ...r, createdAt: toTime(r.created_at) }))
+  },
+
+  /** Login opcional por SMS (Supabase → Authentication → Phone). */
+  auth: {
+    demoCode: null,
+    async current() {
+      const { data } = await supabase.auth.getSession()
+      return toUser(data.session?.user)
+    },
+    onChange(callback) {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(toUser(session?.user)))
+      return () => data.subscription.unsubscribe()
+    },
+    async sendCode(phone) {
+      const { error } = await supabase.auth.signInWithOtp({ phone: `+55${phone}` })
+      if (error) {
+        if (/provider|sms|phone/i.test(error.message)) throw new Error('O login por SMS ainda não foi ativado neste site.')
+        throw new Error('Não foi possível enviar o código agora. Tente de novo em alguns minutos.')
+      }
+      return { demo: false }
+    },
+    async verifyCode(phone, code) {
+      const { data, error } = await supabase.auth.verifyOtp({ phone: `+55${phone}`, token: code, type: 'sms' })
+      if (error) throw new Error('Código incorreto ou vencido. Confira os números ou peça um novo código.')
+      return toUser(data.user)
+    },
+    async signOut() {
+      await supabase.auth.signOut()
+    },
+  },
 
   async consultarNumero(phone) {
     const d = await rpc('consultar_numero', { p_phone: phone })

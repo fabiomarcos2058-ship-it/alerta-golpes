@@ -1,63 +1,104 @@
-import { ShieldCheck, Flag, MessageSquareHeart, PhoneIncoming } from 'lucide-react'
+import { Search, PhoneIncoming, MessageSquareText, Lightbulb, UserRound, Flag, Type, LogIn } from 'lucide-react'
+import Logo from './Logo'
+import { formatPhone } from '../utils/phone'
 
-const NAV = [
-  { href: '#consulta', label: 'Consultar' },
-  { href: '#feed', label: 'Denúncias' },
-  { href: '#dicas', label: 'Dicas' },
+export const NAV = [
+  { id: 'consultar', label: 'Consultar', short: 'Consultar', icon: Search },
+  { id: 'simulador', label: 'Simular golpe', short: 'Simular', icon: PhoneIncoming },
+  { id: 'mensagem', label: 'Analisar mensagem', short: 'Mensagem', icon: MessageSquareText },
+  { id: 'dicas', label: 'Dicas', short: 'Dicas', icon: Lightbulb },
+  { id: 'minha-area', label: 'Minha área', short: 'Minha área', icon: UserRound },
 ]
 
-export default function Header({ onReport, onFeedback, onSimulate }) {
+export default function Header({ view, go, onReport, onLogin, user, bigText, onToggleText }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-        <a href="#consulta" className="flex shrink-0 items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/30">
-            <ShieldCheck className="size-5 text-cyan-300" />
-          </span>
-          <span className="hidden font-display text-lg font-bold tracking-tight text-white min-[400px]:inline">
-            Alerta<span className="text-cyan-300">Golpe</span>
-          </span>
+    <header className="sticky top-0 z-30 border-b border-line bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
+        <a href="#consultar" aria-label="Alerta Golpe, página inicial">
+          <Logo compact />
         </a>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Seções">
-          {NAV.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
-            >
-              {item.label}
-            </a>
-          ))}
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={onFeedback}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
+            onClick={onToggleText}
+            aria-pressed={bigText}
+            title={bigText ? 'Voltar o texto ao tamanho normal' : 'Aumentar o texto'}
+            className={`btn btn-ghost px-2.5 ${bigText ? 'bg-brand-tint text-brand' : ''}`}
           >
-            <MessageSquareHeart className="size-4" />
-            Feedback
+            <Type className="size-5" />
+            <span className="hidden sm:inline">{bigText ? 'Texto normal' : 'Texto maior'}</span>
           </button>
-        </nav>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onSimulate()}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 sm:px-3.5"
-          >
-            <PhoneIncoming className="size-4" />
-            <span>Simular<span className="hidden sm:inline"> golpe</span></span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onReport()}
-            className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 sm:px-3.5"
-          >
-            <Flag className="size-4" />
-            <span>Denunciar<span className="hidden sm:inline"> número</span></span>
+          {user ? (
+            <button type="button" onClick={() => go('minha-area')} className="btn btn-ghost hidden px-3 md:inline-flex">
+              <UserRound className="size-5" />
+              <span className="font-mono text-sm">{formatPhone(user.phone).replace(/\d{4}-/, '••••-')}</span>
+            </button>
+          ) : (
+            <button type="button" onClick={onLogin} className="btn btn-ghost hidden px-3 md:inline-flex">
+              <LogIn className="size-5" /> Entrar
+            </button>
+          )}
+
+          <button type="button" onClick={() => onReport()} className="btn btn-secondary px-3" aria-label="Denunciar um número">
+            <Flag className="size-[18px] text-danger" />
+            <span className={bigText ? 'hidden min-[440px]:inline' : ''}>Denunciar</span>
           </button>
         </div>
       </div>
+
+      {/* Abas no computador */}
+      <nav className="mx-auto hidden max-w-5xl gap-1 px-4 md:flex" aria-label="Seções do site">
+        {NAV.map(({ id, label, icon: Icon }) => {
+          const active = view === id
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              aria-current={active ? 'page' : undefined}
+              className={`relative flex items-center gap-2 px-3 pt-2 pb-3 text-[15px] font-semibold transition ${
+                active ? 'text-brand' : 'text-ink-soft hover:text-ink'
+              }`}
+            >
+              <Icon className="size-[18px]" />
+              {label}
+              {active && <span className="absolute inset-x-2 bottom-0 h-[3px] rounded-full bg-brand" />}
+            </a>
+          )
+        })}
+      </nav>
     </header>
+  )
+}
+
+/** Barra de navegação fixa embaixo, no celular. */
+export function BottomNav({ view }) {
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      aria-label="Seções do site"
+    >
+      <div className="grid grid-cols-5">
+        {NAV.map(({ id, short, icon: Icon }) => {
+          const active = view === id
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              aria-current={active ? 'page' : undefined}
+              className={`flex flex-col items-center gap-1 px-1 pt-2.5 pb-2 text-[12px] leading-tight font-semibold ${
+                active ? 'text-brand' : 'text-ink-soft'
+              }`}
+            >
+              <span className={`grid h-7 w-12 place-items-center rounded-full transition ${active ? 'bg-brand-tint' : ''}`}>
+                <Icon className="size-[20px]" />
+              </span>
+              <span className="text-center">{short}</span>
+            </a>
+          )
+        })}
+      </div>
+    </nav>
   )
 }

@@ -260,3 +260,24 @@ $$;
 
 revoke execute on function public.enviar_feedback(int, text, text, text, text, text) from public, anon;
 grant  execute on function public.enviar_feedback(int, text, text, text, text, text) to authenticated;
+
+-- =====================================================================
+--  LOGIN OPCIONAL + "Minhas denúncias"
+--  Para o login com número: Authentication → Sign In / Providers → Phone
+--  (precisa de um provedor de SMS, como Twilio). Sem isso o site funciona
+--  normalmente, só o botão "Entrar" avisa que o login não está ativo.
+-- =====================================================================
+create or replace function public.minhas_denuncias()
+returns table (id uuid, phone text, category text, severity text, description text, created_at timestamptz)
+language sql stable security definer
+set search_path = public
+as $$
+  select d.id, d.phone, d.category, d.severity, d.description, d.created_at
+  from denuncias d
+  where d.reporter_id = auth.uid()
+  order by d.created_at desc
+  limit 100
+$$;
+
+revoke execute on function public.minhas_denuncias() from public, anon;
+grant  execute on function public.minhas_denuncias() to authenticated;
