@@ -17,6 +17,8 @@ const REASONS = [
 export default function ReviewModal({ phone, days, onClose, onSubmit }) {
   const [reason, setReason] = useState('')
   const [done, setDone] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
   if (!phone) return null
 
   return (
@@ -31,11 +33,19 @@ export default function ReviewModal({ phone, days, onClose, onSubmit }) {
       ) : (
         <form
           className="space-y-5 overflow-y-auto px-5 py-5 sm:px-6"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault()
-            if (!reason) return
-            onSubmit(phone, reason)
-            setDone(true)
+            if (!reason || sending) return
+            setSending(true)
+            setError('')
+            try {
+              await onSubmit(phone, reason)
+              setDone(true)
+            } catch (err) {
+              setError(err.message || 'Não foi possível enviar o pedido. Tente de novo.')
+            } finally {
+              setSending(false)
+            }
           }}
         >
           <p className="text-ink">
@@ -54,13 +64,16 @@ export default function ReviewModal({ phone, days, onClose, onSubmit }) {
               ))}
             </div>
           </fieldset>
+          {error && (
+            <p role="alert" className="rounded-xl bg-danger-tint p-3 text-[15px] text-danger">{error}</p>
+          )}
           <p className="flex gap-3 rounded-xl bg-paper p-4 text-[15px] text-ink-soft">
             <Info className="mt-0.5 size-5 shrink-0 text-brand" />
-            Demonstração: não pedimos documento nem nenhum dado, e a base de números fictícia não muda.
+            Não pedimos documento nem nenhum dado pessoal: só o motivo. Uma pessoa da moderação confere as denúncias e decide.
           </p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancelar</button>
-            <button type="submit" disabled={!reason} className="btn btn-primary disabled:opacity-50">Enviar pedido</button>
+            <button type="submit" disabled={!reason || sending} className="btn btn-primary disabled:opacity-50">{sending ? 'Enviando…' : 'Enviar pedido'}</button>
           </div>
         </form>
       )}

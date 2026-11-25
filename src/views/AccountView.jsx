@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LogIn, LogOut, Bookmark, Trash2, Search, Flag, ShieldCheck, Shield, MessageSquareHeart, Smartphone, Layers, Sparkles, Clock, CircleHelp, HandHeart } from 'lucide-react'
+import { LogIn, LogOut, Bookmark, Trash2, Search, Flag, ShieldCheck, Shield, MessageSquareHeart, Smartphone, Layers, Sparkles, Clock, CircleHelp, HandHeart, Download, Share, SquarePlus } from 'lucide-react'
 import { LIST_LIMIT, TRIAL_DAYS } from '../data/plans'
 import UpgradePrompt from '../components/UpgradePrompt'
 import { reportStage, helpedBy } from '../lib/notifications'
@@ -126,7 +126,8 @@ function GroupPanel({ panel }) {
   )
 }
 
-export default function AccountView({ user, onLogin, onLogout, watchlist, onRemove, onCheck, loadMyReports, training, attempts, onReport, onFeedback, go, isDemo, planInfo, onEndPlan, onTrial, notifications, onTutorial }) {
+export default function AccountView({ user, onLogin, onLogout, watchlist, onRemove, onCheck, loadMyReports, training, attempts, onReport, onFeedback, go, isDemo, planInfo, onEndPlan, onTrial, notifications, onTutorial, onClearData, installer }) {
+  const [confirmClear, setConfirmClear] = useState(false)
   const { plan, planName, isPremium, isTrial, daysLeft, canTrial, panel } = planInfo
   const upgrade = { canTrial, onTrial: () => onTrial(), onPlans: () => go('planos') }
   const [mine, setMine] = useState(null)
@@ -214,6 +215,29 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
           </button>
         </div>
       </section>
+
+      {!installer.installed && (installer.canInstall || installer.ios) && (
+        <section className="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand">
+            <Download className="size-6" />
+          </span>
+          <div className="flex-1">
+            <p className="text-lg font-bold text-ink">Instale o Alerta Golpe no celular</p>
+            {installer.ios ? (
+              <p className="text-ink-soft">
+                No iPhone, toque em <Share className="inline size-4 align-[-2px]" /> Compartilhar e depois em <SquarePlus className="inline size-4 align-[-2px]" /> Adicionar à Tela de Início.
+              </p>
+            ) : (
+              <p className="text-ink-soft">Fica com ícone na tela inicial, abre sem internet e mostra os avisos. Não precisa de loja de aplicativos.</p>
+            )}
+          </div>
+          {installer.canInstall && (
+            <button type="button" onClick={installer.install} className="btn btn-primary">
+              <Download className="size-5" /> Instalar app
+            </button>
+          )}
+        </section>
+      )}
 
       <Section title="Minha lista" description={
           isPremium
@@ -337,7 +361,7 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
         )}
       </Section>
 
-      <Section title="Ajuda e opinião" description="Reveja o tutorial ou conte para a gente o que achou.">
+      <Section title="Ajuda, opinião e privacidade" description="Reveja o tutorial, conte o que achou ou cuide dos seus dados.">
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onTutorial} className="btn btn-secondary">
             <CircleHelp className="size-5" /> Ver o tutorial
@@ -345,6 +369,28 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
           <button type="button" onClick={onFeedback} className="btn btn-secondary">
             <MessageSquareHeart className="size-5" /> Enviar feedback
           </button>
+        </div>
+        <div className="mt-5 border-t border-line pt-5">
+          <p className="text-ink">
+            Sua lista, seu treino, os avisos e as pesquisas ficam só neste aparelho. Leia os{' '}
+            <a href="#termos" className="font-semibold text-brand underline">Termos de uso</a> e a{' '}
+            <a href="#privacidade" className="font-semibold text-brand underline">Política de privacidade</a>.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {confirmClear ? (
+              <>
+                <button type="button" onClick={onClearData} className="btn bg-danger text-white hover:bg-danger/90">
+                  <Trash2 className="size-5" /> Sim, apagar tudo
+                </button>
+                <button type="button" onClick={() => setConfirmClear(false)} className="btn btn-secondary">Cancelar</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => setConfirmClear(true)} className="btn btn-ghost text-danger">
+                <Trash2 className="size-5" /> Apagar meus dados deste aparelho
+              </button>
+            )}
+          </div>
+          {confirmClear && <p className="mt-2 text-[15px] text-ink-soft">Isso apaga a lista, o treino, os avisos, o plano simulado e as denúncias feitas na demonstração neste aparelho. Não dá para desfazer.</p>}
         </div>
       </Section>
     </div>

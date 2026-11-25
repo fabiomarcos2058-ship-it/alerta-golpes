@@ -40,7 +40,7 @@ export default function Logo({ compact = false }) {
   return (
     <span className="flex items-center gap-2">
       <LogoMark className="size-10" />
-      <span className={compact ? 'hidden min-[380px]:inline' : ''}>
+      <span className={compact ? 'hidden min-[440px]:inline' : ''}>
         <Wordmark className="h-[24px] w-auto" />
       </span>
     </span>

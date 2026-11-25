@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Bell, BellOff, Flag, Users, Ban, Trash2, Archive, Bookmark, Scale, BadgeCheck, Settings, CheckCheck, Search, ArrowLeft, Info } from 'lucide-react'
 import Modal from './Modal'
 import { timeAgo } from '../utils/phone'
+import { askNotificationPermission, showSystemNotification } from '../hooks/useInstall'
 
 export const KIND = {
   welcome: { icon: Bell, cls: 'bg-brand-tint text-brand' },
@@ -13,6 +14,7 @@ export const KIND = {
   list: { icon: Bookmark, cls: 'bg-brand-tint text-brand' },
   review: { icon: Scale, cls: 'bg-brand-tint text-brand' },
   'review-done': { icon: BadgeCheck, cls: 'bg-safe-tint text-safe' },
+  'review-denied': { icon: Scale, cls: 'bg-paper text-ink-soft' },
 }
 
 function Toggle({ id, label, hint, checked, onChange, disabled }) {
@@ -40,6 +42,23 @@ function Toggle({ id, label, hint, checked, onChange, disabled }) {
 export default function NotificationsModal({ open, onClose, center, onCheck, isPremium, onPlans }) {
   const { visible, prefs, setPrefs, markAllRead, clear } = center
   const [settings, setSettings] = useState(false)
+  const [pushMsg, setPushMsg] = useState('')
+
+  const togglePush = async (v) => {
+    setPushMsg('')
+    if (!v) return setPrefs({ ...prefs, push: false })
+    const result = await askNotificationPermission()
+    if (result === 'granted') {
+      setPrefs({ ...prefs, push: true })
+      showSystemNotification('Avisos ligados', 'Assim vão aparecer os avisos do Alerta Golpe no seu aparelho.', 'teste')
+    } else {
+      setPushMsg(
+        result === 'unsupported'
+          ? 'Este navegador não mostra avisos do sistema. Instale o app ou use o Chrome.'
+          : 'O navegador bloqueou os avisos. Libere nas configurações do site (ícone de cadeado ao lado do endereço).'
+      )
+    }
+  }
 
   useEffect(() => {
     if (!open) setSettings(false)
@@ -67,15 +86,16 @@ export default function NotificationsModal({ open, onClose, center, onCheck, isP
               disabled={!isPremium}
               onChange={(v) => setPrefs({ ...prefs, list: v })}
             />
-            <Toggle id="pref-push" label="Avisar no celular" hint="Mostrar os avisos mesmo com o site fechado." checked={prefs.push} onChange={(v) => setPrefs({ ...prefs, push: v })} />
+            <Toggle id="pref-push" label="Avisar no celular" hint="Mostrar os avisos do Alerta Golpe na tela do aparelho." checked={prefs.push} onChange={togglePush} />
           </div>
+          {pushMsg && <p role="alert" className="mt-2 rounded-xl bg-warn-tint p-3 text-[15px] text-warn">{pushMsg}</p>}
           {!isPremium && (
             <button type="button" onClick={() => { close(); onPlans() }} className="btn btn-secondary mt-3">Ver planos</button>
           )}
           <p className="mt-4 flex gap-3 rounded-xl bg-brand-tint p-4 text-[15px] text-ink">
             <Info className="mt-0.5 size-5 shrink-0 text-brand" />
             <span>
-              Isto é uma demonstração: nenhum aviso é enviado para o seu celular de verdade, e as novidades chegam em segundos para você ver como funcionaria.
+              Os avisos aparecem no aparelho enquanto o site ou o app estiver aberto, mesmo em segundo plano. Nesta demonstração, as novidades das denúncias são simuladas e chegam em segundos. Com o banco de dados ligado, poderão chegar com o app fechado.
             </span>
           </p>
         </div>

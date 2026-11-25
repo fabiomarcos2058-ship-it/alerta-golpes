@@ -5,7 +5,7 @@ import { welcomeNotification } from '../lib/notifications'
 
 // Avisos que chegam junto com a ação da pessoa (ela já viu a confirmação na tela)
 const INSTANT = ['received', 'review', 'welcome']
-const REPORT_KINDS = ['received', 'confirmed', 'blocked', 'removed', 'expired', 'review', 'review-done']
+const REPORT_KINDS = ['received', 'confirmed', 'blocked', 'removed', 'expired', 'review', 'review-done', 'review-denied']
 
 /** Central de avisos simulados. Usar uma vez só, no App. */
 export function useNotifications({ onArrive } = {}) {

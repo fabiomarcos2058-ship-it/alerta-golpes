@@ -156,7 +156,11 @@ export default function ReportModal({ open, initialPhone = '', onClose, onSubmit
               {submitError}
             </p>
           )}
-          <footer className="flex flex-col-reverse gap-2 border-t border-line px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <p className="border-t border-line px-5 pt-3 text-sm text-ink-soft sm:px-6">
+            Ao enviar, você confirma que o relato é verdadeiro e não tem dados pessoais, conforme os{' '}
+            <a href="#termos" onClick={onClose} className="font-semibold text-brand underline">Termos de uso</a>.
+          </p>
+          <footer className="flex flex-col-reverse gap-2 px-5 pt-3 pb-4 sm:flex-row sm:justify-end sm:px-6">
             <button type="button" onClick={onClose} disabled={state === 'sending'} className="btn btn-secondary">Cancelar</button>
             <button type="submit" disabled={state === 'sending'} className="btn btn-primary">
               {state === 'sending' ? <LoaderCircle className="size-5 animate-spin" /> : <Flag className="size-5" />}

@@ -27,6 +27,13 @@ create index if not exists denuncias_reporter_idx on public.denuncias (reporter_
 alter table public.denuncias enable row level security;
 revoke all on public.denuncias from anon, authenticated;
 
+-- Números cujas denúncias foram apagadas depois de um pedido de revisão aceito
+-- (criada aqui porque consultar_numero, abaixo, usa esta tabela).
+create table if not exists public.numeros_revisados (
+  phone       text primary key,
+  revisado_em timestamptz not null default now()
+);
+
 -- 2) Funções auxiliares ------------------------------------------------
 -- Regra de status (espelhada em src/data/constants.js → classify):
 --   sem denúncias                                        → seguro
@@ -78,6 +85,7 @@ as $$
     'reporters_alto', agg.reporters_alto,
     'status',         _status_numero(agg.total, agg.reporters, agg.reporters_alto),
     'severity',       json_build_object('leve', agg.leve, 'moderado', agg.moderado, 'alto', agg.alto),
+    'reviewed_at',    (select revisado_em from numeros_revisados where phone = p_phone),
     'last_at',        agg.last_at,
     'first_at',       agg.first_at,
     'categories',     coalesce((
@@ -281,3 +289,144 @@ $$;
 
 revoke execute on function public.minhas_denuncias() from public, anon;
 grant  execute on function public.minhas_denuncias() to authenticated;
+
+
+-- =====================================================================
+--  MODERAÇÃO: pedidos de revisão e denúncias apagadas
+--  Para virar moderador: Table Editor → moderadores → Insert row →
+--  cole o seu user id (Authentication → Users). Depois entre no site
+--  com o seu número e abra #moderacao.
+-- =====================================================================
+create table if not exists public.moderadores (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.pedidos_revisao (
+  id           uuid primary key default gen_random_uuid(),
+  phone        text not null check (phone ~ '^([1-9][0-9]{9,10}|0303[0-9]{6,8})$'),
+  reason       text not null check (reason in ('meu','clonado','novo','empresa')),
+  status       text not null default 'pendente' check (status in ('pendente','aprovado','recusado')),
+  requester_id uuid not null references auth.users (id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  decided_at   timestamptz,
+  decided_by   uuid references auth.users (id)
+);
+
+-- Denúncias apagadas saem da tabela principal (as consultas não mudam) e ficam guardadas aqui.
+create table if not exists public.denuncias_apagadas (
+  like public.denuncias,
+  apagada_em  timestamptz not null default now(),
+  apagada_por uuid,
+  motivo      text not null
+);
+
+alter table public.moderadores        enable row level security;
+alter table public.numeros_revisados  enable row level security;
+alter table public.pedidos_revisao    enable row level security;
+alter table public.denuncias_apagadas enable row level security;
+revoke all on public.moderadores, public.numeros_revisados, public.pedidos_revisao, public.denuncias_apagadas from anon, authenticated;
+
+create or replace function public.sou_moderador()
+returns boolean
+language sql stable security definer
+set search_path = public
+as $$ select exists (select 1 from moderadores where user_id = auth.uid()) $$;
+
+create or replace function public.pedir_revisao(p_phone text, p_reason text)
+returns uuid
+language plpgsql security definer
+set search_path = public
+as $$
+declare v_uid uuid := auth.uid(); v_id uuid;
+begin
+  if v_uid is null then
+    raise exception 'Sessão expirada. Recarregue a página e tente de novo.';
+  end if;
+  if (select count(*) from pedidos_revisao
+      where requester_id = v_uid and created_at > now() - interval '24 hours') >= 3 then
+    raise exception 'Você já enviou 3 pedidos de revisão hoje. Tente de novo amanhã.';
+  end if;
+  if exists (select 1 from pedidos_revisao where phone = p_phone and status = 'pendente') then
+    raise exception 'Já existe um pedido de revisão em análise para este número.';
+  end if;
+  insert into pedidos_revisao (phone, reason, requester_id) values (p_phone, p_reason, v_uid)
+  returning id into v_id;
+  return v_id;
+end $$;
+
+create or replace function public.moderacao_listar()
+returns json
+language plpgsql stable security definer
+set search_path = public
+as $$
+begin
+  if not sou_moderador() then raise exception 'Área só para moderadores.'; end if;
+  return json_build_object(
+    'revisoes', coalesce((select json_agg(r order by r.created_at desc) from (
+        select id, phone, reason, status, created_at, decided_at from pedidos_revisao
+        order by created_at desc limit 100) r), '[]'::json),
+    'denuncias', coalesce((select json_agg(d order by d.created_at desc) from (
+        select id, phone, category, severity, description, created_at from denuncias
+        order by created_at desc limit 50) d), '[]'::json)
+  );
+end $$;
+
+create or replace function public.decidir_revisao(p_id uuid, p_aprovar boolean)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+declare v_phone text;
+begin
+  if not sou_moderador() then raise exception 'Área só para moderadores.'; end if;
+  update pedidos_revisao
+     set status = case when p_aprovar then 'aprovado' else 'recusado' end,
+         decided_at = now(), decided_by = auth.uid()
+   where id = p_id and status = 'pendente'
+  returning phone into v_phone;
+  if v_phone is null then raise exception 'Pedido não encontrado ou já decidido.'; end if;
+  if p_aprovar then
+    with moved as (delete from denuncias where phone = v_phone returning *)
+    insert into denuncias_apagadas select moved.*, now(), auth.uid(), 'revisao' from moved;
+    insert into numeros_revisados (phone) values (v_phone)
+      on conflict (phone) do update set revisado_em = now();
+  end if;
+end $$;
+
+create or replace function public.apagar_denuncia(p_id uuid)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if not sou_moderador() then raise exception 'Área só para moderadores.'; end if;
+  with moved as (delete from denuncias where id = p_id returning *)
+  insert into denuncias_apagadas select moved.*, now(), auth.uid(), 'moderacao' from moved;
+end $$;
+
+revoke execute on function public.sou_moderador(), public.pedir_revisao(text, text), public.moderacao_listar(),
+  public.decidir_revisao(uuid, boolean), public.apagar_denuncia(uuid) from public, anon;
+grant execute on function public.sou_moderador(), public.pedir_revisao(text, text), public.moderacao_listar(),
+  public.decidir_revisao(uuid, boolean), public.apagar_denuncia(uuid) to authenticated;
+
+-- =====================================================================
+--  RETENÇÃO (o que a Política de privacidade promete)
+--  Rode à mão de vez em quando, ou agende com a extensão pg_cron:
+--    select cron.schedule('limpeza-diaria', '0 4 * * *', 'select public.limpar_dados_antigos()');
+-- =====================================================================
+create or replace function public.limpar_dados_antigos()
+returns json
+language plpgsql security definer
+set search_path = public
+as $$
+declare a int; b int; c int; d int;
+begin
+  delete from denuncias          where created_at < now() - interval '2 years';  get diagnostics a = row_count;
+  delete from denuncias_apagadas where apagada_em < now() - interval '6 months'; get diagnostics b = row_count;
+  delete from feedbacks          where created_at < now() - interval '1 year';   get diagnostics c = row_count;
+  delete from pedidos_revisao    where created_at < now() - interval '1 year';   get diagnostics d = row_count;
+  return json_build_object('denuncias', a, 'apagadas', b, 'feedbacks', c, 'revisoes', d);
+end $$;
+
+revoke execute on function public.limpar_dados_antigos() from public, anon, authenticated;

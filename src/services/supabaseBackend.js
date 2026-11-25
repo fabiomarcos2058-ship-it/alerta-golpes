@@ -87,7 +87,35 @@ export const supabaseBackend = {
       firstAt: toTime(d.first_at),
       categories: withPct(d.categories, d.total),
       recent: d.recent.map((r) => ({ ...r, createdAt: toTime(r.created_at) })),
+      reviewedAt: d.reviewed_at ? toTime(d.reviewed_at) : null,
     }
+  },
+
+  async pedirRevisao({ phone, reason }) {
+    await ensureSession()
+    const id = await rpc('pedir_revisao', { p_phone: phone, p_reason: reason })
+    return { id, phone, reason, createdAt: Date.now(), status: 'pendente' }
+  },
+
+  /** Só funciona para quem está na tabela `moderadores` (veja supabase/schema.sql). */
+  moderacao: {
+    async souModerador() {
+      await ensureSession()
+      return Boolean(await rpc('sou_moderador'))
+    },
+    async listar() {
+      const d = await rpc('moderacao_listar')
+      return {
+        revisoes: d.revisoes.map((r) => ({ id: r.id, phone: r.phone, reason: r.reason, status: r.status, createdAt: toTime(r.created_at), decidedAt: r.decided_at ? toTime(r.decided_at) : null })),
+        denuncias: d.denuncias.map((r) => ({ id: r.id, phone: r.phone, category: r.category, severity: r.severity, description: r.description, createdAt: toTime(r.created_at) })),
+      }
+    },
+    async decidirRevisao(id, aprovar) {
+      return rpc('decidir_revisao', { p_id: id, p_aprovar: aprovar })
+    },
+    async apagarDenuncia(id) {
+      return rpc('apagar_denuncia', { p_id: id })
+    },
   },
 
   async panoramaDDD(ddd) {

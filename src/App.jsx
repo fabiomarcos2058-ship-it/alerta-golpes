@@ -12,13 +12,17 @@ import MessageView from './views/MessageView'
 import TipsView from './views/TipsView'
 import AccountView from './views/AccountView'
 import PlansView from './views/PlansView'
+import ModerationView from './views/ModerationView'
+import LegalView from './views/LegalView'
 import SubscribeModal from './components/SubscribeModal'
 import { UpgradeModal } from './components/UpgradePrompt'
 import NotificationsModal from './components/NotificationsModal'
 import OnboardingModal from './components/OnboardingModal'
 import ReviewModal from './components/ReviewModal'
 import { useNotifications } from './hooks/useNotifications'
-import { reportNotifications, watchNotifications, reviewNotifications } from './lib/notifications'
+import { useInstall, showSystemNotification } from './hooks/useInstall'
+import { reportNotifications, watchNotifications, reviewNotifications, reviewDecisionNotification } from './lib/notifications'
+import { backend } from './services/backend'
 import { PLAN_BY_ID, LIST_LIMIT, TRIAL_DAYS, TRIAL_PLAN } from './data/plans'
 import { usePlan } from './hooks/usePlan'
 import { useReports } from './hooks/useReports'
@@ -69,11 +73,14 @@ function Site() {
   const [onboarded, setOnboarded] = useStored(KEYS.onboarded, false)
   const [tutorialOpen, setTutorialOpen] = useState(!onboarded)
 
-  const onArrive = useCallback(
-    (n) => setToast({ text: n.title, bell: true, actionLabel: 'Ver notificação', onAction: () => setNotifOpen(true) }),
-    []
-  )
+  const pushRef = useRef(false)
+  const onArrive = useCallback((n) => {
+    setToast({ text: n.title, bell: true, actionLabel: 'Ver notificação', onAction: () => setNotifOpen(true) })
+    if (pushRef.current) showSystemNotification(n.title, n.text, n.id)
+  }, [])
   const center = useNotifications({ onArrive })
+  pushRef.current = center.prefs.push
+  const installer = useInstall()
 
   const onTrialEnded = useCallback(() => setToast('Seu teste grátis terminou. Você voltou para o plano Gratuito.'), [])
   const planInfo = usePlan({ onTrialEnded })
@@ -176,7 +183,10 @@ function Site() {
     setSimScenario(sc)
   }
   const reviewDays = isPremium ? 2 : 7
-  const submitReview = (phone) => center.schedule(reviewNotifications(phone, reviewDays))
+  const submitReview = async (phone, reason) => {
+    await backend.pedirRevisao({ phone, reason })
+    center.schedule(reviewNotifications(phone, reviewDays))
+  }
 
   const access = { isPremium, canTrial: planInfo.canTrial, onTrial: () => beginTrial(), onPlans: () => go('planos') }
 
@@ -195,7 +205,7 @@ function Site() {
         onToggleText={() => setTextSize((t) => (t === 'grande' ? 'normal' : 'grande'))}
       />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-8 pb-32 sm:pt-12 md:pb-20">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-8 pb-12 sm:pt-12 md:pb-20">
         {view === 'consultar' && (
           <HomeView
             isDemo={isDemo}
@@ -219,6 +229,19 @@ function Site() {
         )}
         {view === 'simulador' && <SimulatorView training={training} onStart={openScenario} access={access} />}
         {view === 'mensagem' && <MessageView />}
+        {view === 'moderacao' && (
+          <ModerationView
+            isDemo={isDemo}
+            user={user}
+            onLogin={() => setLoginOpen(true)}
+            onCheck={(phone) => runSearch(phone)}
+            onDecision={(req, approved) => {
+              if (!req.sample) center.schedule([reviewDecisionNotification(req.phone, approved)])
+              setToast(approved ? 'Revisão aceita: as denúncias do número foram apagadas.' : 'Revisão recusada: as denúncias foram mantidas.')
+            }}
+          />
+        )}
+        {(view === 'termos' || view === 'privacidade') && <LegalView doc={view} go={go} />}
         {view === 'planos' && (
           <PlansView
             planInfo={planInfo}
@@ -248,6 +271,14 @@ function Site() {
             training={training}
             attempts={attempts}
             notifications={center.visible}
+            onClearData={() => {
+              Object.keys(localStorage)
+                .filter((k) => k.startsWith('alerta-golpe:'))
+                .forEach((k) => localStorage.removeItem(k))
+              window.location.hash = 'consultar'
+              window.location.reload()
+            }}
+            installer={installer}
             onTutorial={() => setTutorialOpen(true)}
             onReport={openReport}
             onFeedback={() => setFeedbackOpen(true)}
@@ -262,20 +293,26 @@ function Site() {
         )}
       </main>
 
-      <footer className="hidden border-t border-line bg-white md:block">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-start justify-between gap-6 px-4 py-8 text-[15px] text-ink-soft">
-          <div className="flex max-w-md gap-3">
+      <footer className="mb-[76px] border-t border-line bg-white md:mb-0">
+        <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-8 text-[15px] text-ink-soft">
+          <div className="flex max-w-2xl gap-3">
             <LogoMark className="size-8 shrink-0" />
             <p>
               O Alerta Golpe nunca liga para você e nunca pede senhas, códigos ou dados bancários. As denúncias são relatos de usuários e não são acusação formal.
               {isDemo && ' Versão de demonstração: os números da base são fictícios.'}
             </p>
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setTutorialOpen(true)} className="btn btn-secondary">Como usar</button>
-            <a href="#planos" className="btn btn-secondary">Planos</a>
-            <button type="button" onClick={() => setFeedbackOpen(true)} className="btn btn-secondary">Enviar feedback</button>
-          </div>
+          <nav aria-label="Rodapé" className="flex flex-wrap gap-x-5 gap-y-2 font-semibold text-ink">
+            <button type="button" onClick={() => setTutorialOpen(true)} className="hover:text-brand">Como usar</button>
+            <a href="#planos" className="hover:text-brand">Planos</a>
+            <a href="#termos" className="hover:text-brand">Termos de uso</a>
+            <a href="#privacidade" className="hover:text-brand">Privacidade</a>
+            <a href="#moderacao" className="hover:text-brand">Moderação</a>
+            {installer.canInstall && (
+              <button type="button" onClick={installer.install} className="hover:text-brand">Instalar app</button>
+            )}
+            <button type="button" onClick={() => setFeedbackOpen(true)} className="hover:text-brand">Enviar feedback</button>
+          </nav>
         </div>
       </footer>
 

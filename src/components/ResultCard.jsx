@@ -129,6 +129,15 @@ function PhoneResult({ result, onReport, saved, onToggleSave, onShare, onReview 
           </button>
         </div>
 
+        {result.reviewedAt && (
+          <p className="mt-4 flex gap-3 rounded-xl border border-line bg-paper p-4 text-[15px] text-ink">
+            <Scale className="mt-0.5 size-5 shrink-0 text-brand" />
+            <span>
+              <b>Número revisado.</b> Em {new Date(result.reviewedAt).toLocaleDateString('pt-BR')}, a moderação apagou as denúncias antigas depois de um pedido de revisão. Denúncias novas continuam aparecendo.
+            </span>
+          </p>
+        )}
+
         <details className="group mt-4 rounded-xl border border-line">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-ink [&::-webkit-details-marker]:hidden">
             <span className="flex items-center gap-2">

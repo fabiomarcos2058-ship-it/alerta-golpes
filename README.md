@@ -152,6 +152,14 @@ O sino no topo mostra avisos sobre os números que a pessoa denunciou: denúncia
 - "Este número é seu? Pedir revisão": pedido simulado, sem dados, para proteger quem foi denunciado por engano.
 - "Como bloquear este número" (Android, iPhone e WhatsApp) no resultado da consulta.
 
+## Moderação, privacidade e app instalável
+
+- **Moderação** (`#moderacao`): pedidos de revisão de quem diz ser dono do número, relatos recentes com alerta de possível dado pessoal, e botões para aceitar a revisão (apaga as denúncias e marca o número como "revisado") ou apagar um relato. No Supabase, só quem está na tabela `moderadores` entra: depois de rodar o `schema.sql`, vá em Table Editor → `moderadores` → Insert row e cole o seu user id (Authentication → Users).
+- **Termos de uso** (`#termos`) e **Política de privacidade** (`#privacidade`), em linguagem simples, com base na LGPD. Antes de lançar com dados reais, vale pedir para um advogado revisar.
+- **Retenção**: a função `limpar_dados_antigos()` apaga o que a política promete (denúncias com mais de 2 anos etc.). Rode de vez em quando ou agende com `pg_cron` (instrução no fim do `schema.sql`).
+- **Apagar meus dados deste aparelho** em Minha área.
+- **App instalável (PWA)**: `public/manifest.webmanifest` e `public/sw.js`. Abre sem internet, tem ícone na tela inicial e mostra os avisos no aparelho quando a pessoa liga "Avisar no celular" (enquanto o site ou app estiver aberto).
+
 ## Logo
 
 `public/favicon.svg` é a marca (escudo + telefone tocando). As versões completas ficam

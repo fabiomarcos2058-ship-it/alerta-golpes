@@ -56,8 +56,15 @@ export function reviewNotifications(phone, days, now = Date.now()) {
   const n = formatPhone(phone)
   return [
     make('review', phone, 'Pedido de revisão recebido', `Vamos analisar as denúncias de ${n} em até ${days} dias.`, 0, now),
-    make('review-done', phone, 'Revisão concluída', `Analisamos ${n}. As denúncias que pareciam engano foram apagadas e o número ficou marcado como "revisado".`, 40 * SEC, now),
   ]
+}
+
+/** Resultado da revisão, enviado quando a moderação decide. */
+export function reviewDecisionNotification(phone, approved, now = Date.now()) {
+  const n = formatPhone(phone)
+  return approved
+    ? make('review-done', phone, 'Revisão aceita', `As denúncias de ${n} foram apagadas e o número ficou marcado como "revisado".`, 0, now)
+    : make('review-denied', phone, 'Revisão recusada', `As denúncias de ${n} continuam, porque várias pessoas relataram o mesmo golpe. Se algo mudar, você pode pedir de novo.`, 0, now)
 }
 
 export function welcomeNotification(now = Date.now()) {
