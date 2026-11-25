@@ -417,10 +417,26 @@ export default function CallSimulator({ scenario, onClose, onPickAnother, onFini
     return () => clearInterval(t)
   }, [phase])
 
-  // Rola a conversa até o fim
+  // Rola a conversa até o fim, a não ser que a pessoa tenha subido para reler uma fala
+  const stickRef = useRef(true)
+  const [unseen, setUnseen] = useState(false)
+  const toBottom = () => {
+    const el = scrollRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    stickRef.current = true
+    setUnseen(false)
+  }
+  const onConvScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    if (stickRef.current) setUnseen(false)
+  }
   useEffect(() => {
     const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (!el) return
+    if (stickRef.current) el.scrollTop = el.scrollHeight
+    else setUnseen(true)
   }, [transcript, choices])
 
   // Esc fecha
@@ -549,7 +565,18 @@ export default function CallSimulator({ scenario, onClose, onPickAnother, onFini
               {soundButton}
             </div>
 
-            <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto px-4 py-4" aria-live="polite">
+            {unseen && (
+              <div className="relative h-0">
+                <button
+                  type="button"
+                  onClick={toBottom}
+                  className="absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white shadow-lg"
+                >
+                  Nova fala ↓
+                </button>
+              </div>
+            )}
+            <div ref={scrollRef} onScroll={onConvScroll} className="flex-1 space-y-2.5 overflow-y-auto px-4 py-4" aria-live="polite">
               {transcript.map((item) => {
                 if (item.type === 'them') {
                   const isB = item.speaker === 'b'
