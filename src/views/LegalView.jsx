@@ -1,14 +1,14 @@
 import { FileText, ShieldCheck } from 'lucide-react'
 
 // Textos em linguagem simples. Antes de lançar com dados reais, peça para um advogado revisar.
-const UPDATED = '24 de novembro de 2026'
+const UPDATED = '25 de novembro de 2026'
 
 const TERMS = [
   {
     title: 'O que é o Alerta Golpe',
     body: [
       'O Alerta Golpe é um serviço colaborativo e gratuito: as pessoas contam quais números ligaram ou mandaram mensagem tentando aplicar golpe, e quem recebe uma ligação pode consultar esses relatos antes de atender ou responder.',
-      'As denúncias são relatos de usuários, não são acusação formal nem decisão da polícia ou da Justiça. O selo de um número (Sem denúncias, Suspeito ou Golpe) é calculado pela quantidade de pessoas que denunciaram e pela gravidade que marcaram.',
+      'As denúncias são relatos de usuários, não são acusação formal nem decisão da polícia ou da Justiça. O selo de um número (Sem denúncias, Suspeito ou Perigoso) é calculado pela quantidade de pessoas que denunciaram e pela gravidade que marcaram.',
       'O Alerta Golpe não substitui o boletim de ocorrência. Se você perdeu dinheiro, procure seu banco e a polícia.',
     ],
   },
@@ -26,7 +26,8 @@ const TERMS = [
       'Conte o que aconteceu sem colocar dados pessoais: nada de CPF, endereço, nome completo, foto ou dados bancários, nem seus nem de outras pessoas.',
       'Não use o site para vingança, brincadeira ou para prejudicar alguém. Denunciar uma pessoa inocente de propósito pode gerar responsabilidade civil e criminal.',
       'Não use robôs nem programas para denunciar em massa.',
-      'Para evitar abuso, cada pessoa pode fazer até 10 denúncias por dia e denunciar o mesmo número uma vez a cada 30 dias.',
+      'Para evitar abuso, cada pessoa pode fazer até 10 denúncias por dia e denunciar o mesmo número uma vez a cada 30 dias. Cada rede de internet tem um limite de 30 denúncias por dia.',
+      'Números de emergência e de atendimento oficial (190, 0800, 4004 e centrais cadastradas de bancos e órgãos públicos) não podem ser denunciados. Golpistas costumam falsificar esses números na tela.',
     ],
   },
   {
@@ -71,8 +72,8 @@ const PRIVACY = [
     title: 'Quais dados usamos',
     list: [
       'Ao consultar: o número digitado, só para fazer a busca. Não guardamos histórico das suas consultas no servidor.',
-      'Ao denunciar: o número denunciado, o tipo de golpe, a gravidade, o seu relato, a data e um identificador anônimo da sua sessão. O identificador serve só para os limites contra abuso e nunca é mostrado.',
-      'Login opcional: o seu número de telefone, para enviar o código de acesso por SMS e mostrar as suas denúncias em qualquer aparelho.',
+      'Ao denunciar: o número denunciado, o tipo de golpe, a gravidade, o seu relato, a data, um identificador anônimo da sua sessão e um código calculado a partir do endereço de internet (IP) da sua rede. Esse código não permite descobrir o IP. Os dois servem só para os limites contra abuso e nunca são mostrados.',
+      'Login opcional: o seu número de telefone, para enviar o código de acesso por SMS e mostrar as suas denúncias em qualquer aparelho. Há limite de códigos por hora para evitar envio abusivo de SMS, e não guardamos o código depois de usado.',
       'Feedback: a nota, a mensagem, o contato (se você quiser informar), a página e o tipo de navegador.',
       'Pedido de revisão: o número e o motivo escolhido. Não pedimos documento.',
       'Analisador de mensagens: o texto que você cola é analisado no seu próprio aparelho e não é enviado para ninguém.',

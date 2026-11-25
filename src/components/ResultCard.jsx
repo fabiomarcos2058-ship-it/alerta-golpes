@@ -1,3 +1,4 @@
+import DemoNote from './DemoNote'
 import { Flag, MessageSquare, Bookmark, BookmarkCheck, Share2, MapPin, Megaphone, PhoneOff, ChevronDown, Scale } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import { CATEGORY_BY_ID, SEVERITY_BY_ID, STATUS } from '../data/constants'
@@ -105,7 +106,7 @@ function PhoneResult({ result, onReport, saved, onToggleSave, onShare, onReview 
                   <div>
                     <p className="text-[15px] leading-relaxed text-ink">“{r.description}”</p>
                     <p className="mt-1 text-sm text-ink-soft">
-                      {CATEGORY_BY_ID[r.category].label}, gravidade {SEVERITY_BY_ID[r.severity].label.toLowerCase()}, {timeAgo(r.createdAt)}
+                      {CATEGORY_BY_ID[r.category].label}, gravidade {SEVERITY_BY_ID[r.severity].adj}, {timeAgo(r.createdAt)}
                     </p>
                   </div>
                 </li>
@@ -224,7 +225,16 @@ export function ResultSkeleton() {
   )
 }
 
-export default function ResultCard({ result, ...props }) {
+export default function ResultCard({ result, isDemo, ...props }) {
   if (!result) return null
-  return result.type === 'ddd' ? <DDDResult result={result} /> : <PhoneResult result={result} {...props} />
+  return (
+    <div>
+      {result.type === 'ddd' ? <DDDResult result={result} /> : <PhoneResult result={result} {...props} />}
+      {isDemo && (
+        <DemoNote className="mt-3 px-1">
+          Demonstração: os números e as denúncias deste resultado são fictícios. Quando o banco de dados for ligado, aparecerão denúncias reais.
+        </DemoNote>
+      )}
+    </div>
+  )
 }

@@ -191,7 +191,7 @@ export default function ModerationView({ onCheck, onDecision, onLogin, user, isD
                       <span className="text-sm text-ink-soft">{timeAgo(d.createdAt)}</span>
                     </div>
                     <p className="text-sm text-ink-soft">
-                      {CATEGORY_BY_ID[d.category]?.label ?? d.category}, gravidade {SEVERITY_BY_ID[d.severity]?.label?.toLowerCase() ?? d.severity}
+                      {CATEGORY_BY_ID[d.category]?.label ?? d.category}, gravidade {SEVERITY_BY_ID[d.severity]?.adj ?? d.severity}
                     </p>
                     <p className="mt-1 text-[15px] text-ink">“{d.description}”</p>
                     {flags.length > 0 && <p className="mt-1 text-sm font-semibold text-warn">{flags.join('. ')}.</p>}

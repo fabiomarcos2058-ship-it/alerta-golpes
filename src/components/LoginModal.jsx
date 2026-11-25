@@ -5,6 +5,26 @@ import { useAuth } from '../hooks/useAuth'
 import { formatAsTyped, formatPhone, isTelemarketingPrefix, isValidPhone, normalizePhone } from '../utils/phone'
 
 const RESEND_SECONDS = 30
+const MAX_CODES_PER_HOUR = 3
+const CODES_KEY = 'alerta-golpe:codigos-enviados:v1'
+
+/** Limite no aparelho contra pedidos de SMS em excesso (o Supabase também limita no servidor). */
+function canSendCode() {
+  let list = []
+  try {
+    list = JSON.parse(localStorage.getItem(CODES_KEY)) ?? []
+  } catch {
+    list = []
+  }
+  const recent = list.filter((t) => t > Date.now() - 3600e3)
+  if (recent.length >= MAX_CODES_PER_HOUR) return false
+  try {
+    localStorage.setItem(CODES_KEY, JSON.stringify([...recent, Date.now()]))
+  } catch {
+    /* navegação privada */
+  }
+  return true
+}
 
 /**
  * Login OPCIONAL com o número do celular. O código chega por SMS e a pessoa
@@ -40,6 +60,10 @@ export default function LoginModal({ open, onClose, demoCode }) {
     e?.preventDefault()
     if (!isValidPhone(digits) || isTelemarketingPrefix(digits)) {
       setError('Digite seu celular com DDD, por exemplo (11) 98765-4321.')
+      return
+    }
+    if (!canSendCode()) {
+      setError('Você pediu muitos códigos na última hora. Espere um pouco e tente de novo.')
       return
     }
     setBusy(true)

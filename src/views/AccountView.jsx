@@ -149,7 +149,41 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
     <div className="space-y-6">
       <section>
         <h1 className="text-[2.25rem] leading-[1.1] font-extrabold tracking-[-0.02em] text-ink sm:text-5xl">Minha área</h1>
-        <p className="mt-3 max-w-2xl text-lg text-ink-soft">Seus números salvos, suas denúncias e seu treino contra golpes.</p>
+        <p className="mt-3 max-w-2xl text-lg text-ink-soft">Seu plano, seus números salvos, suas denúncias e seu treino contra golpes.</p>
+      </section>
+
+      <section className={`flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:p-6 ${isPremium ? 'border-brand/30 bg-brand-tint' : 'border-line bg-white'}`}>
+        <span className={`grid size-12 shrink-0 place-items-center rounded-xl ${isPremium ? 'bg-white text-brand' : 'bg-brand-tint text-brand'}`}>
+          {isTrial ? <Clock className="size-6" /> : <Layers className="size-6" />}
+        </span>
+        <div className="flex-1">
+          <p className="text-lg font-bold text-ink">
+            {isTrial ? `Teste grátis do plano ${planName}` : `Plano ${planName}`}
+            {isPremium && !isTrial && ' (simulação)'}
+          </p>
+          <p className="text-ink-soft">
+            {isTrial
+              ? `Faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Depois, você volta sozinho para o Gratuito, sem cobrança.`
+              : isPremium
+                ? `${plan.summary}. Nenhuma cobrança é feita.`
+                : canTrial
+                  ? `Opcional: teste o Plus por ${TRIAL_DAYS} dias, sem cobrança. Consultar e denunciar continuam grátis.`
+                  : 'Tudo o que protege você, sem anúncios.'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {isPremium && (
+            <button type="button" onClick={onEndPlan} className="btn btn-ghost">{isTrial ? 'Encerrar teste' : 'Encerrar simulação'}</button>
+          )}
+          {canTrial && (
+            <button type="button" onClick={() => onTrial()} className="btn btn-primary">
+              <Sparkles className="size-5" /> Testar grátis
+            </button>
+          )}
+          <button type="button" onClick={() => go('planos')} className="btn btn-secondary">
+            Ver planos
+          </button>
+        </div>
       </section>
 
       {user ? (
@@ -182,39 +216,6 @@ export default function AccountView({ user, onLogin, onLogout, watchlist, onRemo
         </section>
       )}
 
-      <section className={`flex flex-col gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center sm:p-6 ${isPremium ? 'border-brand/30 bg-brand-tint' : 'border-line bg-white'}`}>
-        <span className={`grid size-12 shrink-0 place-items-center rounded-xl ${isPremium ? 'bg-white text-brand' : 'bg-brand-tint text-brand'}`}>
-          {isTrial ? <Clock className="size-6" /> : <Layers className="size-6" />}
-        </span>
-        <div className="flex-1">
-          <p className="text-lg font-bold text-ink">
-            {isTrial ? `Teste grátis do plano ${planName}` : `Plano ${planName}`}
-            {isPremium && !isTrial && ' (simulação)'}
-          </p>
-          <p className="text-ink-soft">
-            {isTrial
-              ? `Faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Depois, você volta sozinho para o Gratuito, sem cobrança.`
-              : isPremium
-                ? `${plan.summary}. Nenhuma cobrança é feita.`
-                : canTrial
-                  ? `Teste os recursos pagos por ${TRIAL_DAYS} dias, sem pagar e sem cadastro.`
-                  : 'Tudo o que protege você, sem anúncios.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {isPremium && (
-            <button type="button" onClick={onEndPlan} className="btn btn-ghost">{isTrial ? 'Encerrar teste' : 'Encerrar simulação'}</button>
-          )}
-          {canTrial && (
-            <button type="button" onClick={() => onTrial()} className="btn btn-primary">
-              <Sparkles className="size-5" /> Testar grátis
-            </button>
-          )}
-          <button type="button" onClick={() => go('planos')} className="btn btn-secondary">
-            Ver planos
-          </button>
-        </div>
-      </section>
 
       {!installer.installed && (installer.canInstall || installer.ios) && (
         <section className="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5 sm:flex-row sm:items-center sm:p-6">

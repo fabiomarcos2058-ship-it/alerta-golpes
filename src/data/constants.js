@@ -18,9 +18,9 @@ export const CATEGORIES = [
 export const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 
 export const SEVERITIES = [
-  { id: 'leve', label: 'Leve', hint: 'Incômodo, insistente', weight: 1, dot: 'bg-sky-500', ring: 'peer-checked:border-brand peer-checked:bg-brand-tint' },
-  { id: 'moderado', label: 'Moderado', hint: 'Pediu dados ou dinheiro', weight: 2, dot: 'bg-amber-500', ring: 'peer-checked:border-warn peer-checked:bg-warn-tint' },
-  { id: 'alto', label: 'Alto', hint: 'Golpe, ameaça ou prejuízo', weight: 4, dot: 'bg-red-600', ring: 'peer-checked:border-danger peer-checked:bg-danger-tint' },
+  { id: 'leve', label: 'Leve', adj: 'leve', hint: 'Incômodo, insistente', weight: 1, dot: 'bg-sky-500', ring: 'peer-checked:border-brand peer-checked:bg-brand-tint' },
+  { id: 'moderado', label: 'Moderado', adj: 'moderada', hint: 'Pediu dados ou dinheiro', weight: 2, dot: 'bg-amber-500', ring: 'peer-checked:border-warn peer-checked:bg-warn-tint' },
+  { id: 'alto', label: 'Alto', adj: 'alta', hint: 'Golpe, ameaça ou prejuízo', weight: 4, dot: 'bg-red-600', ring: 'peer-checked:border-danger peer-checked:bg-danger-tint' },
 ]
 
 export const SEVERITY_BY_ID = Object.fromEntries(SEVERITIES.map((s) => [s.id, s]))

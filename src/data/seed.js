@@ -25,41 +25,59 @@ export const DESCRIPTIONS = {
     'Liga todo dia no mesmo horário oferecendo plano de celular. Já pedi pra tirar meu número e continuam.',
     'Oferta de cartão de crédito. Quando digo que não tenho interesse, desligam e ligam de novo.',
     'Ligação insistente de "promoção de internet", às vezes 4 vezes por dia.',
+    'Ligaram às 7 da manhã de domingo oferecendo portabilidade de plano.',
+    'Atendente oferece seguro de vida e não aceita "não" como resposta.',
+    'Mesma oferta de TV por assinatura, cada vez de um número parecido.',
   ],
   'falso-banco': [
     'Disseram ser da central de segurança do meu banco e que havia uma compra suspeita. Pediram para eu confirmar o código que chegou por SMS.',
     'Falso atendente sabia meu nome e CPF. Pediu pra transferir o saldo para uma "conta segura".',
     'Gravação dizendo que meu cartão foi clonado e para digitar a senha no teclado.',
+    'Falaram de uma compra de R$ 2.300 numa loja de eletrônicos e mandaram eu instalar um aplicativo de "proteção".',
+    'Ligação com musiquinha de espera igual à do banco. Depois pediram para eu ir ao caixa eletrônico.',
+    'Disseram que um motoboy ia buscar meu cartão "bloqueado" em casa.',
   ],
   pix: [
     'Pediram um Pix urgente para "liberar" uma entrega retida nos Correios.',
     'Disseram que fiz um Pix por engano para eles e pediram devolução. Não houve Pix nenhum.',
     'Golpe do Pix agendado: mandaram comprovante falso e pediram o dinheiro de volta.',
+    'Fingiram ser da loja onde comprei e pediram um Pix para "confirmar o pedido".',
+    'Pediram Pix para uma chave aleatória dizendo que era taxa de cartório.',
   ],
   emprestimo: [
     'Ofereceram empréstimo pré-aprovado, mas pediram taxa antecipada via Pix para liberar.',
     'Falso correspondente bancário oferecendo consignado com juros baixos. Pediram foto do documento.',
     'Disseram que eu tinha crédito aprovado e só precisava pagar o "seguro" antes.',
+    'Prometeram limpar meu nome e liberar crédito se eu pagasse uma taxa de análise.',
+    'Mandaram contrato por WhatsApp com logo de banco e pediram depósito de R$ 390.',
   ],
   extorsao: [
     'Ameaçaram divulgar fotos minhas se eu não pagasse. Nunca mandei foto nenhuma.',
     'Disseram ser de facção e exigiram dinheiro para "não acontecer nada" com minha família.',
+    'Falaram que estavam com meu filho e pediram dinheiro. Ele estava na escola, tudo bem.',
   ],
   robocall: [
     'Ligação muda, cai assim que atendo. Várias vezes por semana.',
     'Robô fala "alô?" e desliga. Provavelmente testando se o número está ativo.',
+    'Gravação começa a falar de pesquisa e desliga no meio.',
+    'Toca uma vez só e para. Quando retorno, cai numa mensagem estranha.',
   ],
   whatsapp: [
     'Pediram o código de 6 dígitos do WhatsApp dizendo ser de pesquisa de vacinação.',
     'Ligaram dizendo ser do aplicativo de entregas e pediram o código que chegou por SMS.',
+    'Disseram que eu ganhei um brinde e precisavam do código para "confirmar o cadastro".',
+    'Fingiram ser do suporte do WhatsApp e falaram que minha conta seria apagada.',
   ],
   'falso-parente': [
     'Voz parecida com a do meu filho dizendo que estava em apuros e precisava de dinheiro.',
     'Mensagem e depois ligação: "mãe, troquei de número", pedindo para pagar um boleto.',
+    'Se passaram pela minha sobrinha, com foto dela no perfil, pedindo Pix emprestado.',
+    'Disseram que meu neto sofreu um acidente e precisavam pagar o hospital na hora.',
   ],
   outro: [
     'Ligação estranha perguntando meu endereço completo para "atualização cadastral".',
     'Disseram que ganhei um prêmio de sorteio que nunca participei.',
+    'Falso agente de saúde querendo agendar visita e pedindo meu CPF.',
   ],
 }
 
@@ -85,14 +103,21 @@ export function pickWeighted(weights, rand) {
 
 export const pick = (list, rand) => list[Math.floor(rand() * list.length)]
 
-export function makeReport(profile, createdAt, rand, id) {
+/**
+ * Cria uma denúncia. Só parte delas tem relato (como na vida real), e `used`
+ * evita repetir o mesmo texto no mesmo número.
+ */
+export function makeReport(profile, createdAt, rand, id, used = new Set()) {
   const category = pick(profile.cats, rand)
+  const free = DESCRIPTIONS[category].filter((d) => !used.has(d))
+  const description = free.length && rand() < 0.45 ? pick(free, rand) : null
+  if (description) used.add(description)
   return {
     id,
     phone: profile.phone,
     category,
     severity: pickWeighted(profile.sev, rand),
-    description: pick(DESCRIPTIONS[category], rand),
+    description,
     createdAt,
   }
 }
@@ -102,10 +127,11 @@ export function generateSeed(now = Date.now()) {
   const rand = mulberry32(2026)
   const reports = []
   PROFILES.forEach((profile, pIndex) => {
+    const used = new Set()
     for (let i = 0; i < profile.n; i++) {
       // Distribuição concentrada nos dias mais recentes.
       const age = i === 0 ? (pIndex * 11 + rand() * 9) * 60 * 1000 : Math.pow(rand(), 2) * 90 * DAY
-      reports.push(makeReport(profile, now - age, rand, `seed-${pIndex}-${i}`))
+      reports.push(makeReport(profile, now - age, rand, `seed-${pIndex}-${i}`, used))
     }
   })
   return reports.sort((a, b) => b.createdAt - a.createdAt)

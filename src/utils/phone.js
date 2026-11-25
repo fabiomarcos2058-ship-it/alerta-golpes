@@ -22,6 +22,7 @@ export function normalizePhone(value) {
   let d = onlyDigits(value)
   if (d.length >= 12 && d.startsWith('55')) d = d.slice(2)
   if (d.startsWith('0303')) return d.slice(0, 12)
+  if (/^0[589]00/.test(d) || d === '0800'.slice(0, d.length)) return d.slice(0, 11) // 0800 e afins: mantém para avisar que é oficial
   if (d.length < 4 && '0303'.startsWith(d)) return d // ainda digitando "0303"
   return d.replace(/^0+/, '').slice(0, 11)
 }
@@ -30,6 +31,11 @@ export const isTelemarketingPrefix = (digits) => digits.startsWith('0303')
 
 export const isValidDDD = (ddd) => Boolean(DDD_UF[Number(ddd)])
 export const ufFromDDD = (ddd) => DDD_UF[Number(ddd)] ?? null
+
+/** Emergência (190, 192, 193…) e atendimento oficial (0800, 4004, 3003, 4020…), que não podem ser denunciados. */
+export function isOfficialNumber(digits) {
+  return /^1\d{2,3}$/.test(digits) || /^0[3589]00\d{6,8}$/.test(digits) && !digits.startsWith('0303') || /^(4004|3003|4020|4090|4003|3004)\d{4}$/.test(digits)
+}
 
 export function isValidPhone(digits) {
   if (isTelemarketingPrefix(digits)) return /^0303\d{6,8}$/.test(digits)
@@ -53,6 +59,7 @@ export function formatPhone(digits) {
 export function formatAsTyped(value) {
   const d = normalizePhone(value)
   if (isTelemarketingPrefix(d)) return format0303(d)
+  if (/^0[589]00/.test(d)) return [d.slice(0, 4), d.slice(4, 7), d.slice(7)].filter(Boolean).join(' ')
   if (d.length <= 2 || (d.length < 4 && d.startsWith('0'))) return d
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`

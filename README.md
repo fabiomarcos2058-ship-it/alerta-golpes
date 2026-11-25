@@ -160,6 +160,17 @@ O sino no topo mostra avisos sobre os números que a pessoa denunciou: denúncia
 - **Apagar meus dados deste aparelho** em Minha área.
 - **App instalável (PWA)**: `public/manifest.webmanifest` e `public/sw.js`. Abre sem internet, tem ícone na tela inicial e mostra os avisos no aparelho quando a pessoa liga "Avisar no celular" (enquanto o site ou app estiver aberto).
 
+## Proteções contra abuso
+
+- **Por pessoa:** até 10 denúncias por dia e 1 por número a cada 30 dias.
+- **Por rede:** até 30 denúncias por dia saindo do mesmo IP. O banco guarda só um código (hash) do IP, nunca o IP. Troque o texto `troque-este-sal` na função `ip_hash_atual()` do `schema.sql` por uma frase secreta sua.
+- **Números protegidos:** emergência e atendimento oficial (190, 0800, 4004, 3003…) são recusados no formulário. Centrais de bancos e órgãos públicos com DDD podem ser cadastradas na tabela `numeros_protegidos`.
+- **SMS do login:** o site permite no máximo 3 códigos por hora em cada aparelho e 30 segundos entre reenvios. No Supabase, configure também:
+  1. Authentication → Rate Limits → "Rate limit for sending SMS messages" (ex.: 30 por hora para o site todo).
+  2. Authentication → Attack Protection → ative o CAPTCHA (Cloudflare Turnstile ou hCaptcha) quando o site tiver muitos acessos.
+  3. Authentication → Providers → Phone → "SMS OTP Expiry" de 300 segundos (5 minutos).
+  4. Na Twilio, limite os países para enviar só para o Brasil (Messaging → Settings → Geo permissions).
+
 ## Logo
 
 `public/favicon.svg` é a marca (escudo + telefone tocando). As versões completas ficam

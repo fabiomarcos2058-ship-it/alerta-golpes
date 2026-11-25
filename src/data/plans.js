@@ -114,7 +114,7 @@ export const FEATURES = {
     { label: 'Sem anúncios', values: { gratuito: true, plus: true, familia: true } },
     { label: 'Minha lista de números', values: { gratuito: 'Até 5 números', plus: 'Sem limite', familia: 'Sem limite' } },
     { label: 'Avisos dos números da minha lista', values: { gratuito: false, plus: true, familia: true } },
-    { label: 'Golpes extras no simulador', values: { gratuito: false, plus: true, familia: true } },
+    { label: 'Golpes extras no simulador', values: { gratuito: '1 treino grátis de cada', plus: 'Sem limite', familia: 'Sem limite' } },
     { label: 'Relatório do seu treino', values: { gratuito: false, plus: true, familia: true } },
     { label: 'Pessoas protegidas', values: { gratuito: '1', plus: '1', familia: 'Até 6' } },
     { label: 'Painel da família', values: { gratuito: false, plus: false, familia: true } },
@@ -137,7 +137,7 @@ export const FEATURES = {
 /** O que o plano gratuito NÃO tem, em comparação com os pagos. */
 export const FREE_LIMITS = [
   'Minha lista guarda no máximo 5 números, sem avisos',
-  'Só os 4 golpes principais no simulador, sem os golpes extras',
+  'Golpes extras do simulador: só 1 treino grátis de cada',
   'Sem relatório do seu treino no simulador',
   'Protege só você, sem painel da família, turma ou equipe',
   'Pedido de revisão de número analisado em até 7 dias',

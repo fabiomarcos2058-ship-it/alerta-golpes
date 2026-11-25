@@ -8,9 +8,9 @@ const RESULT = {
   scammed: { icon: ShieldX, text: 'Caiu no golpe. Tente de novo', ring: 'bg-danger-tint text-danger' },
 }
 
-function ScenarioCard({ sc, training, onStart, locked }) {
+function ScenarioCard({ sc, training, onStart, locked, freeTry, used }) {
   const Icon = sc.icon
-  const res = !locked && training[sc.id] && RESULT[training[sc.id]]
+  const res = training[sc.id] && RESULT[training[sc.id]]
   return (
     <li className={`flex flex-col rounded-2xl border bg-white p-5 ${locked ? 'border-dashed border-line' : 'border-line'}`}>
       <div className="flex items-start gap-4">
@@ -23,9 +23,13 @@ function ScenarioCard({ sc, training, onStart, locked }) {
         </div>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-        {locked ? (
+        {freeTry ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-tint px-2.5 py-1 text-sm font-semibold text-brand">
+            <Sparkles className="size-4" /> 1 treino grátis
+          </span>
+        ) : locked ? (
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft">
-            <Lock className="size-4" /> Plano pago
+            <Lock className="size-4" /> {used ? 'Treino grátis usado' : 'Plano pago'}
           </span>
         ) : res ? (
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-semibold ${res.ring}`}>
@@ -34,9 +38,9 @@ function ScenarioCard({ sc, training, onStart, locked }) {
         ) : (
           <span className="text-sm text-ink-soft">Ainda não treinou</span>
         )}
-        {!locked && (
+        {(!locked || freeTry) && (
           <button type="button" onClick={() => onStart(sc.id)} className="btn btn-primary">
-            <Phone className="size-5" /> {res ? 'Treinar de novo' : 'Atender ligação'}
+            <Phone className="size-5" /> {res && !locked ? 'Treinar de novo' : 'Atender ligação'}
           </button>
         )}
       </div>
@@ -44,7 +48,7 @@ function ScenarioCard({ sc, training, onStart, locked }) {
   )
 }
 
-export default function SimulatorView({ training, onStart, access }) {
+export default function SimulatorView({ training, attempts = [], onStart, access }) {
   const { isPremium, canTrial, onTrial, onPlans } = access
   const done = FREE_SCENARIOS.filter((s) => training[s.id] === 'safe').length
   const all = done === FREE_SCENARIOS.length
@@ -77,7 +81,7 @@ export default function SimulatorView({ training, onStart, access }) {
       </section>
 
       <section aria-labelledby="principais">
-        <h2 id="principais" className="text-xl font-bold text-ink">Os 4 golpes principais</h2>
+        <h2 id="principais" className="text-xl font-bold text-ink">Os 4 golpes principais, grátis</h2>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
           {FREE_SCENARIOS.map((sc) => (
             <ScenarioCard key={sc.id} sc={sc} training={training} onStart={onStart} />
@@ -89,15 +93,15 @@ export default function SimulatorView({ training, onStart, access }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 id="extras" className="text-xl font-bold text-ink">Golpes extras</h2>
           <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-0.5 text-sm font-semibold text-brand">
-            <Sparkles className="size-4" /> {isPremium ? 'Liberados no seu plano' : 'Planos pagos'}
+            <Sparkles className="size-4" /> {isPremium ? 'Liberados no seu plano' : 'Prévia grátis'}
           </span>
         </div>
         <p className="mt-1 text-ink-soft">Golpes que chegam a quem procura emprego e a quem cuida dos pagamentos de uma empresa.</p>
         {!isPremium && (
           <UpgradePrompt
             className="mt-4"
-            title="Libere os golpes extras"
-            text={canTrial ? 'Teste o plano Plus por 7 dias, sem pagar nada e sem cadastro.' : 'Os golpes extras fazem parte dos planos pagos, a partir do Plus.'}
+            title="Prévia: 1 treino grátis em cada golpe extra"
+            text={canTrial ? 'Para treinar quantas vezes quiser, teste o plano Plus por 7 dias, sem cobrança e sem cadastro.' : 'Para treinar quantas vezes quiser, use um plano pago, a partir do Plus.'}
             canTrial={canTrial}
             onTrial={onTrial}
             onPlans={onPlans}
@@ -105,7 +109,7 @@ export default function SimulatorView({ training, onStart, access }) {
         )}
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
           {PREMIUM_SCENARIOS.map((sc) => (
-            <ScenarioCard key={sc.id} sc={sc} training={training} onStart={onStart} locked={!isPremium} />
+            <ScenarioCard key={sc.id} sc={sc} training={training} onStart={onStart} locked={!isPremium} freeTry={!isPremium && !attempts.some((a) => a.id === sc.id)} used={attempts.some((a) => a.id === sc.id)} />
           ))}
         </ul>
       </section>

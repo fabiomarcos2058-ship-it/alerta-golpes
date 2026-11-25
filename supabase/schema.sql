@@ -18,7 +18,11 @@ create table if not exists public.denuncias (
   created_at  timestamptz not null default now()
 );
 
+-- Código derivado do IP de quem denunciou (não dá para voltar ao IP). Serve só para o limite contra abuso.
+alter table public.denuncias add column if not exists ip_hash text;
+
 create index if not exists denuncias_phone_idx    on public.denuncias (phone, created_at desc);
+create index if not exists denuncias_ip_idx       on public.denuncias (ip_hash, created_at desc);
 create index if not exists denuncias_created_idx  on public.denuncias (created_at desc);
 create index if not exists denuncias_reporter_idx on public.denuncias (reporter_id, created_at desc);
 
@@ -96,7 +100,10 @@ as $$
     'recent',         coalesce((
                         select json_agg(r order by r.created_at desc)
                         from (select id, category, severity, description, created_at
-                              from d order by created_at desc limit 3) r
+                              from (select distinct on (description) *
+                                      from d where description is not null
+                                     order by description, created_at desc) u
+                             order by created_at desc limit 3) r
                       ), '[]'::json)
   )
   from agg
@@ -168,6 +175,31 @@ as $$
 $$;
 
 -- 7) Registrar denúncia (com limites anti-abuso) -----------------------
+-- Números oficiais que não podem ser denunciados (centrais de bancos, órgãos públicos…).
+-- Golpistas falsificam esses números na tela (spoofing); denunciá-los prejudicaria o serviço verdadeiro.
+-- Cadastre em Table Editor → numeros_protegidos (só dígitos, com DDD).
+create table if not exists public.numeros_protegidos (
+  phone text primary key,
+  nome  text not null
+);
+alter table public.numeros_protegidos enable row level security;
+revoke all on public.numeros_protegidos from anon, authenticated;
+
+-- Código do IP de quem está chamando. O Supabase repassa o IP no cabeçalho x-forwarded-for.
+-- Troque o texto 'troque-este-sal' por qualquer frase secreta sua.
+create or replace function public.ip_hash_atual()
+returns text
+language plpgsql stable security definer
+set search_path = public
+as $$
+declare v_ip text;
+begin
+  v_ip := btrim(split_part(coalesce(current_setting('request.headers', true)::json ->> 'x-forwarded-for', ''), ',', 1));
+  if v_ip = '' then return null; end if;
+  return encode(extensions.digest(v_ip || 'troque-este-sal', 'sha256'), 'hex');
+end $$;
+revoke execute on function public.ip_hash_atual() from public, anon, authenticated;
+
 create or replace function public.registrar_denuncia(
   p_phone text, p_category text, p_severity text, p_description text
 )
@@ -177,10 +209,22 @@ set search_path = public
 as $$
 declare
   v_uid uuid := auth.uid();
+  v_ip  text := ip_hash_atual();
   v_row denuncias;
 begin
   if v_uid is null then
     raise exception 'Sessão expirada. Recarregue a página e tente de novo.';
+  end if;
+
+  if exists (select 1 from numeros_protegidos where phone = p_phone) then
+    raise exception 'Este é um número oficial protegido e não pode ser denunciado. Se alguém usou esse número para te enganar, ele pode ter sido falsificado: avise o seu banco.';
+  end if;
+
+  -- Limite por rede: impede que alguém crie várias sessões anônimas para denunciar em massa.
+  -- 30 por dia é folgado para redes compartilhadas (escola, empresa, operadora de celular).
+  if v_ip is not null and (select count(*) from denuncias
+      where ip_hash = v_ip and created_at > now() - interval '24 hours') >= 30 then
+    raise exception 'Muitas denúncias saíram desta rede hoje. Tente de novo amanhã.';
   end if;
 
   if (select count(*) from denuncias
@@ -194,8 +238,8 @@ begin
     raise exception 'Você já denunciou este número nos últimos 30 dias.';
   end if;
 
-  insert into denuncias (phone, category, severity, description, reporter_id)
-  values (p_phone, p_category, p_severity, btrim(p_description), v_uid)
+  insert into denuncias (phone, category, severity, description, reporter_id, ip_hash)
+  values (p_phone, p_category, p_severity, btrim(p_description), v_uid, v_ip)
   returning * into v_row;
 
   return json_build_object('id', v_row.id, 'phone', v_row.phone, 'created_at', v_row.created_at);
@@ -320,6 +364,7 @@ create table if not exists public.denuncias_apagadas (
   apagada_por uuid,
   motivo      text not null
 );
+alter table public.denuncias_apagadas add column if not exists ip_hash text;
 
 alter table public.moderadores        enable row level security;
 alter table public.numeros_revisados  enable row level security;
@@ -388,7 +433,8 @@ begin
   if v_phone is null then raise exception 'Pedido não encontrado ou já decidido.'; end if;
   if p_aprovar then
     with moved as (delete from denuncias where phone = v_phone returning *)
-    insert into denuncias_apagadas select moved.*, now(), auth.uid(), 'revisao' from moved;
+    insert into denuncias_apagadas (id, phone, category, severity, description, reporter_id, created_at, ip_hash, apagada_em, apagada_por, motivo)
+    select id, phone, category, severity, description, reporter_id, created_at, ip_hash, now(), auth.uid(), 'revisao' from moved;
     insert into numeros_revisados (phone) values (v_phone)
       on conflict (phone) do update set revisado_em = now();
   end if;
@@ -402,7 +448,8 @@ as $$
 begin
   if not sou_moderador() then raise exception 'Área só para moderadores.'; end if;
   with moved as (delete from denuncias where id = p_id returning *)
-  insert into denuncias_apagadas select moved.*, now(), auth.uid(), 'moderacao' from moved;
+  insert into denuncias_apagadas (id, phone, category, severity, description, reporter_id, created_at, ip_hash, apagada_em, apagada_por, motivo)
+  select id, phone, category, severity, description, reporter_id, created_at, ip_hash, now(), auth.uid(), 'moderacao' from moved;
 end $$;
 
 revoke execute on function public.sou_moderador(), public.pedir_revisao(text, text), public.moderacao_listar(),

@@ -3,8 +3,9 @@ import { ChevronDown, Flag, TriangleAlert } from 'lucide-react'
 import { CATEGORY_BY_ID, SEVERITY_BY_ID } from '../data/constants'
 import { timeAgo } from '../utils/phone'
 import { useNow } from '../hooks/useNow'
+import DemoNote from './DemoNote'
 
-export default function RecentFeed({ reports, stats, error, onReport }) {
+export default function RecentFeed({ reports, stats, error, onReport, isDemo }) {
   const now = useNow(15000)
   const [expanded, setExpanded] = useState(false)
   const visible = (reports ?? []).slice(0, expanded ? 20 : 6)
@@ -30,6 +31,11 @@ export default function RecentFeed({ reports, stats, error, onReport }) {
         )}
       </div>
       <p className="mt-1 text-[15px] text-ink-soft">Os dois últimos dígitos ficam escondidos para proteger as pessoas.</p>
+      {isDemo && (
+        <DemoNote className="mt-2">
+          Demonstração: números e denúncias fictícios. A contagem muda sozinha porque o site simula denúncias novas chegando de tempos em tempos.
+        </DemoNote>
+      )}
 
       {error && (
         <p className="mt-3 flex items-center gap-2 rounded-xl bg-danger-tint px-4 py-3 text-sm text-danger">

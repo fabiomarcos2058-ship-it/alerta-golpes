@@ -45,7 +45,8 @@ export function statsForNumber(allReports, phone) {
     severity: severityBreakdown(reports),
     lastAt: reports[0]?.createdAt ?? null,
     firstAt: reports.at(-1)?.createdAt ?? null,
-    recent: reports.slice(0, 3),
+    // Últimos relatos com texto, sem repetir o mesmo texto
+    recent: reports.filter((r, i, all) => r.description && all.findIndex((x) => x.description === r.description) === i).slice(0, 3),
   }
 }
 

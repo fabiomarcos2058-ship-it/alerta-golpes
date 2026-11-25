@@ -1,4 +1,4 @@
-import { Search, LoaderCircle, History, X } from 'lucide-react'
+import { Search, LoaderCircle, History, X, FlaskConical } from 'lucide-react'
 import { formatAsTyped, formatPhone } from '../utils/phone'
 
 const EXAMPLES = [
@@ -16,7 +16,19 @@ export default function SearchPanel({ value, onChange, onSearch, loading, recent
     onSearch(query)
   }
 
-  const chips = recent.length ? recent.map((v) => ({ label: labelFor(v), value: v })) : showExamples ? EXAMPLES : []
+  const chip = (c) => (
+    <button
+      key={c.value}
+      type="button"
+      onClick={() => {
+        onChange(formatAsTyped(c.value))
+        submit(c.value)
+      }}
+      className="chip font-mono"
+    >
+      {c.label}
+    </button>
+  )
 
   return (
     <div>
@@ -48,29 +60,24 @@ export default function SearchPanel({ value, onChange, onSearch, loading, recent
         </button>
       </form>
 
-      {chips.length > 0 && (
+      {recent.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 text-sm text-ink-soft">
-            {recent.length ? <><History className="size-4" /> Pesquisas recentes:</> : 'Experimente:'}
+            <History className="size-4" /> Pesquisas recentes:
           </span>
-          {chips.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              onClick={() => {
-                onChange(formatAsTyped(c.value))
-                submit(c.value)
-              }}
-              className="chip font-mono"
-            >
-              {c.label}
-            </button>
-          ))}
-          {recent.length > 0 && (
-            <button type="button" onClick={onClearRecent} className="btn btn-ghost px-2 py-1 text-sm font-medium">
-              <X className="size-4" /> Limpar
-            </button>
-          )}
+          {recent.map((v) => chip({ label: labelFor(v), value: v }))}
+          <button type="button" onClick={onClearRecent} className="btn btn-ghost px-2 py-1 text-sm font-medium" aria-label="Limpar pesquisas recentes">
+            <X className="size-4" /> Limpar
+          </button>
+        </div>
+      )}
+
+      {showExamples && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1.5 text-sm text-ink-soft">
+            <FlaskConical className="size-4" /> Números fictícios para testar:
+          </span>
+          {EXAMPLES.map(chip)}
         </div>
       )}
     </div>

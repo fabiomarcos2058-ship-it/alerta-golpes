@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Flag, LoaderCircle, CircleCheck, Search, TriangleAlert } from 'lucide-react'
 import Modal, { FieldError } from './Modal'
 import { CATEGORIES, SEVERITIES } from '../data/constants'
-import { formatAsTyped, formatPhone, isValidPhone, normalizePhone } from '../utils/phone'
+import { formatAsTyped, formatPhone, isValidPhone, normalizePhone, isOfficialNumber } from '../utils/phone'
 
 const MIN_DESC = 20
 const MAX_DESC = 600
@@ -12,6 +12,8 @@ function validate(form) {
   const errors = {}
   const digits = normalizePhone(form.phone)
   if (!digits) errors.phone = 'Informe o número que ligou ou mandou mensagem.'
+  else if (isOfficialNumber(digits) || isOfficialNumber(form.phone.replace(/\D/g, '')))
+    errors.phone = 'Números de emergência e de atendimento oficial (190, 0800, 4004…) não podem ser denunciados. Se alguém usou um deles para te enganar, o número pode ter sido falsificado: avise o seu banco.'
   else if (!isValidPhone(digits)) errors.phone = 'Número inválido. Use DDD e número, por exemplo (11) 98765-4321, ou um 0303.'
   if (!form.category) errors.category = 'Escolha o tipo de golpe ou contato.'
   if (!form.severity) errors.severity = 'Escolha o nível de perigo.'

@@ -176,8 +176,8 @@ function Site() {
 
   const openScenario = (id) => {
     const sc = SCENARIOS.find((s) => s.id === id)
-    if (sc.premium && !isPremium) {
-      setUpgrade({ title: 'Golpe extra do plano pago', text: 'Os golpes extras do simulador fazem parte dos planos pagos, a partir do Plus.' })
+    if (sc.premium && !isPremium && attempts.some((a) => a.id === sc.id)) {
+      setUpgrade({ title: 'Você já usou o treino grátis deste golpe', text: 'Para treinar os golpes extras quantas vezes quiser, use um plano pago, a partir do Plus.' })
       return
     }
     setSimScenario(sc)
@@ -227,7 +227,7 @@ function Site() {
             feed={{ recent, stats, error: feedError }}
           />
         )}
-        {view === 'simulador' && <SimulatorView training={training} onStart={openScenario} access={access} />}
+        {view === 'simulador' && <SimulatorView training={training} attempts={attempts} onStart={openScenario} access={access} />}
         {view === 'mensagem' && <MessageView />}
         {view === 'moderacao' && (
           <ModerationView

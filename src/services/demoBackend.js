@@ -61,7 +61,7 @@ function scheduleLive() {
     live = [makeReport(pick(PROFILES, Math.random), Date.now(), Math.random, id), ...live].slice(0, 50)
     notify()
     scheduleLive()
-  }, 8000 + Math.random() * 10000)
+  }, 20000 + Math.random() * 20000)
 }
 
 export const demoBackend = {

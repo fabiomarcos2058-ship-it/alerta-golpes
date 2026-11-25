@@ -8,7 +8,7 @@ export const NAV = [
   { id: 'mensagem', label: 'Analisar mensagem', short: 'Mensagem', icon: MessageSquareText },
   { id: 'dicas', label: 'Ajuda e dicas', short: 'Ajuda', icon: Lightbulb },
   { id: 'minha-area', label: 'Minha área', short: 'Conta', icon: UserRound },
-  { id: 'planos', label: 'Planos', short: 'Planos', icon: Sparkles },
+  { id: 'planos', label: 'Planos', short: 'Planos', icon: Sparkles, desktopOnly: true },
 ]
 
 function planTag({ isPremium, isTrial, daysLeft, canTrial }) {
@@ -111,29 +111,29 @@ export default function Header({ view, go, onReport, onLogin, user, bigText, onT
 
 /** Barra de navegação fixa embaixo, no celular. */
 export function BottomNav({ view, planInfo }) {
-  const tag = planInfo.isTrial ? `${planInfo.daysLeft}d` : planInfo.canTrial ? 'grátis' : null
+  // No celular, os planos ficam dentro de Conta: a aba ganha um ponto quando há teste grátis ou teste em andamento
+  const dot = planInfo.isTrial || planInfo.canTrial
+  const dotLabel = planInfo.isTrial ? `, teste grátis: faltam ${planInfo.daysLeft} dias` : planInfo.canTrial ? ', teste grátis disponível' : ''
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       aria-label="Seções do site"
     >
-      <div className="grid grid-cols-6">
-        {NAV.map(({ id, short, icon: Icon }) => {
-          const active = view === id
+      <div className="grid grid-cols-5">
+        {NAV.filter((n) => !n.desktopOnly).map(({ id, short, icon: Icon }) => {
+          const active = view === id || (id === 'minha-area' && view === 'planos')
+          const withDot = id === 'minha-area' && dot
           return (
             <a
               key={id}
               href={`#${id}`}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-col items-center gap-1 px-0.5 pt-2.5 pb-2 text-[12px] leading-tight font-semibold ${
-                active || id === 'planos' ? 'text-brand' : 'text-ink-soft'
-              }`}
+              aria-label={withDot ? `${short}${dotLabel}` : undefined}
+              className={`flex flex-col items-center gap-1 px-1 pt-2.5 pb-2 text-[12px] leading-tight font-semibold ${active ? 'text-brand' : 'text-ink-soft'}`}
             >
-              <span className={`relative grid h-7 w-11 place-items-center rounded-full transition ${active ? 'bg-brand-tint' : ''}`}>
+              <span className={`relative grid h-7 w-12 place-items-center rounded-full transition ${active ? 'bg-brand-tint' : ''}`}>
                 <Icon className="size-[20px]" />
-                {id === 'planos' && tag && (
-                  <span className="absolute -top-1.5 -right-2.5 rounded-full bg-brand px-1.5 text-[10px] leading-4 font-bold text-white">{tag}</span>
-                )}
+                {withDot && <span className="absolute top-0.5 right-2.5 size-2.5 rounded-full bg-brand ring-2 ring-white" aria-hidden="true" />}
               </span>
               <span className="text-center">{short}</span>
             </a>

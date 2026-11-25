@@ -5,7 +5,7 @@ import ResultCard, { ResultSkeleton } from '../components/ResultCard'
 import RecentFeed from '../components/RecentFeed'
 
 const TRUST = [
-  { icon: BadgeCheck, text: 'Grátis e sem anúncios' },
+  { icon: BadgeCheck, text: 'Consultar e denunciar é grátis' },
   { icon: UserRoundX, text: 'Não precisa de cadastro' },
   { icon: LockKeyhole, text: 'Nunca pedimos senhas ou códigos' },
 ]
@@ -21,7 +21,7 @@ function PlanBanner({ planInfo, onTrial, go }) {
   const text = isTrial
     ? `Faltam ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}. Golpes extras no simulador, relatório do treino e lista sem limite estão liberados.`
     : canTrial
-      ? 'Golpes extras no simulador, relatório do seu treino e avisos dos números da sua lista. Sem pagar e sem cadastro.'
+      ? 'Opcional: consultar e denunciar continuam grátis. O Plus tem golpes extras, relatório do treino e avisos da sua lista. No teste, nada é cobrado.'
       : 'Proteja a família, uma turma ou uma equipe inteira, com painel e relatório.'
   return (
     <section className="flex flex-col gap-5 rounded-3xl border-2 border-brand/30 bg-white p-6 sm:flex-row sm:items-center sm:p-8">
@@ -89,7 +89,7 @@ export default function HomeView({ search, result, feed, isDemo, onReport, go, p
               {search.error}
             </p>
           )}
-          {!search.loading && <ResultCard {...result} onReport={onReport} />}
+          {!search.loading && <ResultCard {...result} isDemo={isDemo} onReport={onReport} />}
         </div>
       </section>
 
@@ -110,7 +110,7 @@ export default function HomeView({ search, result, feed, isDemo, onReport, go, p
 
       <PlanBanner planInfo={planInfo} onTrial={onTrial} go={go} />
 
-      <RecentFeed reports={feed.recent} stats={feed.stats} error={feed.error} onReport={onReport} />
+      <RecentFeed reports={feed.recent} stats={feed.stats} error={feed.error} onReport={onReport} isDemo={isDemo} />
     </div>
   )
 }

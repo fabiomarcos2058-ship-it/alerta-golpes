@@ -97,7 +97,7 @@ export default function PlansView({ planInfo, onChoose, onTrial }) {
             <Sparkles className="size-8 shrink-0" />
             <div className="flex-1">
               <p className="text-lg font-bold">Teste o Plus grátis por {TRIAL_DAYS} dias</p>
-              <p className="text-white/85">Golpes extras, relatório do treino e avisos da sua lista. Sem pagar e sem cadastro.</p>
+              <p className="text-white/85">Golpes extras, relatório do treino e avisos da sua lista. Nada é cobrado e não pedimos cadastro.</p>
             </div>
             <button type="button" onClick={() => onTrial(TRIAL_PLAN)} className="btn shrink-0 bg-white text-brand hover:bg-brand-tint">
               Começar teste grátis
